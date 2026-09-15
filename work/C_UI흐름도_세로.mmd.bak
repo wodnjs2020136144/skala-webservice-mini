@@ -1,0 +1,38 @@
+%% 너와나의인계고리 — 전체 UI 흐름도
+%% mermaid.live 에 붙여넣고 PNG로 내보낸 뒤 assets/ui_flow.png 로 저장 → 기술서 4장에 삽입
+flowchart TD
+    L["🔑 로그인<br/>1_login_main"]
+
+    subgraph MGR ["수간호사 (Manager)"]
+        direction TB
+        M1["병동 대시보드<br/>2_dashboard_manager"]
+        M2["확정 근무 등록<br/>3_shift_register_manager"]
+        M3["역할·담당 환자 배정<br/>4_assignment_board_manager"]
+        M4["역할별 인계 항목 관리<br/>5_role_template_manager"]
+        M5["결원 재배정<br/>6_reassign_manager"]
+        M6["변경 이력<br/>7_change_history_manager"]
+        M1 --> M2 --> M3
+        M1 --> M4
+        M1 --> M5
+        M3 --> M5
+        M5 --> M6
+        M1 --> M6
+    end
+
+    subgraph NUR ["간호사 (Nurse)"]
+        direction TB
+        N1["내 근무·역할·담당<br/>8_myshift_nurse"]
+        N2["인계 작성<br/>9_handover_write_nurse"]
+        N3["인계 수신·요약 확인<br/>10_handover_receive_nurse"]
+        N4["내 인계 이력<br/>11_handover_history_nurse"]
+        N1 --> N2
+        N1 --> N3
+        N1 --> N4
+        N2 -.->|"인계 전달"| N3
+    end
+
+    L -->|"수간호사"| M1
+    L -->|"간호사"| N1
+    M3 -.->|"배정 게시"| N1
+    M5 -.->|"재배정 반영"| N1
+    M4 -.->|"필수 항목 적용"| N2
