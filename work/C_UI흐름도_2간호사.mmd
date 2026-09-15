@@ -1,0 +1,22 @@
+%% 전체 UI 흐름도 (2/2) — 간호사 · Actor 간 연결
+flowchart TB
+    L["🔑 로그인<br/>1_login_main"]
+    IN(["수간호사 화면에서<br/>데이터 반영 ← 1/2"])
+    subgraph NUR ["간호사 &nbsp;—&nbsp; 실선: 화면 이동"]
+        direction TB
+        N1["내 근무·역할·우리 팀 환자<br/>8_myshift_nurse"]
+        N2["인계 작성<br/>9_handover_write_nurse"]
+        N3["인계 수신·요약 확인<br/>10_handover_receive_nurse"]
+        N4["내 인계 이력<br/>11_handover_history_nurse"]
+        N1 -->|팀 차지| N2
+        N1 -->|"다음 근무 팀 차지 (액팅은 열람)"| N3
+        N1 --> N4
+    end
+    L -->|간호사| N1
+    IN -.->|"배정 반영 · 재배정 반영"| N1
+    IN -.->|"필수 항목 적용"| N2
+    N2 -.->|"인계 전달 &nbsp;※ 앞번 팀 차지 → 뒷번 팀 차지"| N3
+    style NUR fill:#FFFFFF,stroke:#43A047,stroke-width:2px
+    style IN fill:#F2F6F7,stroke:#5B6B70,stroke-dasharray:4 3,color:#222
+    classDef nur fill:#E8F5E9,stroke:#43A047,color:#222
+    class N1,N2,N3,N4 nur

@@ -1,0 +1,106 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>인계 수신·요약 확인 — 너와나의인계고리</title><style>*{box-sizing:border-box;margin:0;padding:0}
+body{width:1440px;background:#fff;font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",Arial,sans-serif;color:#1E2B30;-webkit-font-smoothing:antialiased}
+.top{height:64px;background:#1E4D5C;display:flex;align-items:center;padding:0 40px;color:#fff}
+.brand{font-size:19px;font-weight:700;letter-spacing:-.4px}
+.brand small{font-weight:400;opacity:.65;margin-left:12px;font-size:14px;letter-spacing:0}
+.top .sp{flex:1}
+.who{font-size:15px;opacity:.9}
+.who b{font-weight:600}
+.btn-ghost{margin-left:20px;border:1px solid rgba(255,255,255,.45);background:none;color:#fff;font-size:14px;padding:7px 14px;border-radius:6px;cursor:pointer;font-family:inherit}
+.wrap{padding:36px 40px 60px}
+h1{font-size:28px;font-weight:700;letter-spacing:-.6px}
+.sub{margin-top:8px;font-size:15px;color:#5B6B70}
+.card{border:1px solid #DFE7EA;border-radius:10px;margin-top:20px;overflow:hidden;background:#fff}
+.card-h{padding:20px 24px;display:flex;align-items:center;gap:14px;border-bottom:1px solid #EDF2F4}
+.card-h.today{background:#F5F9FA}
+.date{font-size:19px;font-weight:700}
+.dow{font-size:15px;color:#5B6B70;margin-left:-6px}
+.tag{font-size:14px;font-weight:700;padding:6px 13px;border-radius:6px;letter-spacing:.3px}
+.t-d{background:#FFF3E0;color:#B35B00;border:1px solid #FFD9A8}
+.t-e{background:#EDE7F6;color:#5432A6;border:1px solid #D3C4EF}
+.t-n{background:#E3F2FD;color:#0D5AA7;border:1px solid #B9DBF7}
+.role{font-size:15px;font-weight:600;padding:6px 14px;border-radius:6px;background:#E8F5E9;color:#256B2C;border:1px solid #BEE3C2}
+.role.none{background:#F4F6F7;color:#7A8A90;border-color:#DFE7EA;font-weight:500}
+.flag{font-size:13px;color:#B35B00;background:#FFF6E8;border:1px solid #FFDCAE;padding:5px 11px;border-radius:6px}
+.sp{flex:1}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:13px;font-weight:600;color:#5B6B70;padding:13px 24px;background:#FAFCFC;border-bottom:1px solid #EDF2F4}
+td{padding:16px 24px;font-size:15px;border-bottom:1px solid #F2F6F7}
+tr:last-child td{border-bottom:none}
+.bed{font-weight:700;font-size:16px}
+.code{color:#5B6B70;font-size:14px;font-family:ui-monospace,Menlo,Consolas,monospace}
+.st{display:inline-block;font-size:13px;font-weight:600;padding:5px 11px;border-radius:5px}
+.st-none{background:#F4F6F7;color:#7A8A90}
+.st-draft{background:#FFF6E8;color:#B35B00}
+.st-sent{background:#FFEDEE;color:#B3261E}
+.st-conf{background:#E8F5E9;color:#256B2C}
+.act{text-align:right}
+.btn{font-size:14px;font-weight:600;padding:9px 16px;border-radius:7px;border:1px solid #1E4D5C;background:#1E4D5C;color:#fff;cursor:pointer;font-family:inherit}
+.btn.sec{background:#fff;color:#1E4D5C}
+.btn:disabled{background:#F2F6F7;border-color:#DFE7EA;color:#9AAAB0;cursor:default}
+.empty{padding:44px 24px;text-align:center}
+.empty .ic{font-size:30px}
+.empty .ttl{margin-top:12px;font-size:17px;font-weight:600;color:#3C4F56}
+.empty .dsc{margin-top:7px;font-size:14px;color:#7A8A90}
+.foot{margin-top:28px;font-size:14px}
+.foot a{color:#1E4D5C;text-decoration:none;font-weight:600;border-bottom:1px solid #BCD0D6;padding-bottom:2px}
+.crumb{font-size:14px;color:#5B6B70;margin-bottom:10px}
+.crumb b{color:#1E4D5C}
+.bar2{display:flex;align-items:center;gap:10px;margin-top:20px}
+.sel{height:42px;border:1px solid #DFE7EA;border-radius:8px;padding:0 14px;font-size:15px;font-family:inherit;background:#fff;color:#1E2B30}
+.chip{display:inline-block;font-size:13px;padding:5px 10px;border-radius:6px;background:#EEF4F6;color:#33535E;margin:3px 5px 3px 0;border:1px solid #DCE7EA}
+.chip.add{background:#fff;border-style:dashed;color:#5B6B70;cursor:pointer}
+.warn{margin-top:16px;background:#FFF6E8;border:1px solid #FFDCAE;color:#8A4B00;font-size:14px;padding:13px 16px;border-radius:8px}
+.danger{margin-top:16px;background:#FFEDEE;border:1px solid #F5C6C4;color:#B3261E;font-size:14px;padding:13px 16px;border-radius:8px}
+.ok{margin-top:16px;background:#EDF7EE;border:1px solid #C3E3C6;color:#1F5E26;font-size:14px;padding:13px 16px;border-radius:8px}
+.row-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:22px}
+.field{margin-top:22px}
+.field .q{font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px}
+.req{font-size:12px;font-weight:700;color:#B3261E;background:#FFEDEE;border:1px solid #F5C6C4;padding:2px 7px;border-radius:4px}
+.opt{font-size:12px;font-weight:600;color:#7A8A90;background:#F4F6F7;border:1px solid #E4EBED;padding:2px 7px;border-radius:4px}
+textarea{width:100%;margin-top:9px;min-height:64px;border:1px solid #DFE7EA;border-radius:8px;padding:12px 14px;font-size:15px;font-family:inherit;line-height:1.55;resize:none;color:#1E2B30}
+textarea.miss{border-color:#F0A6A2;background:#FFFBFB}
+textarea::placeholder{color:#A9B7BC}
+.read{margin-top:9px;background:#F8FBFB;border:1px solid #E9F0F2;border-radius:8px;padding:13px 15px;font-size:15px;line-height:1.6}
+.two{display:grid;grid-template-columns:1fr 420px;gap:24px;align-items:start}
+.side{border:1px solid #DFE7EA;border-radius:10px;padding:22px;background:#FAFCFC}
+.side h3{font-size:16px;font-weight:700}
+.side .kv{margin-top:14px;font-size:14px;line-height:1.9;color:#3C4F56}
+.side .kv b{color:#1E2B30}
+</style></head><body><div class="top"><div class="brand">너와나의인계고리 <small>5병동</small></div><div class="sp"></div><div class="who"><b>정하늘</b> 간호사 <span style="opacity:.65">· N 나이트 · A팀 차지</span></div><button class="btn-ghost">로그아웃</button></div><div class="wrap">
+<div class="crumb">내 근무 · 역할 · 우리 팀 환자 &rsaquo; <b>인계 수신 · 요약 확인</b></div>
+<h1>인계 수신 · 요약 확인</h1>
+<div class="sub">501-3 · STAY-2026-0914-021 &nbsp;·&nbsp; 보낸 사람 <b>한서윤</b> (E 이브닝 · A팀 차지) &nbsp;·&nbsp; 22:04 전달됨</div>
+<div class="two"><div>
+<div class="card" style="margin-top:20px"><div class="card-h"><span class="date" style="font-size:17px">받은 인계</span><span class="sp"></span><span class="st st-sent" id="stBadge">확인 대기 · SENT</span></div>
+<div style="padding:8px 24px 26px"><div class="field"><div class="q">환자 · 현재 상태</div><div class="read">현재 의식 명료, 활력징후 안정. 오전 대비 변화 없음.</div></div><div class="field"><div class="q">주요 사정 내용</div><div class="read">좌측 하지 부종 지속. 통증 호소 NRS 3점으로 감소.</div></div><div class="field"><div class="q">이번 근무 중 수행한 조치</div><div class="read">18시 처방 투약 완료. 20시 드레싱 교환.</div></div><div class="field"><div class="q">안전 고려사항 (낙상·억제대·알레르기 등)</div><div class="read">낙상 고위험. 침상 난간 상시 올림.</div></div><div class="field"><div class="q">다음 근무자가 확인할 것</div><div class="read">자정 검사 결과 확인 후 이상 시 당직의 연락.</div></div><div class="field"><div class="q">배경 · 입원 경위</div><div class="read">9/14 응급실 경유 입원.</div></div><div class="field"><div class="q">기타 특이사항</div><div class="read">보호자 면회 22시 이후 없음.</div></div></div></div>
+<div class="card" style="border-color:#BCD0D6"><div class="card-h" style="background:#F5F9FA"><span class="date" style="font-size:17px">핵심 내용 요약</span><span class="req">필수</span><span class="sp"></span></div>
+<div style="padding:18px 24px 24px">
+<div style="font-size:14px;color:#5B6B70;line-height:1.6">받은 내용을 <b>직접 요약해 주세요.</b> 읽은 것만으로는 확인 처리가 되지 않습니다.</div>
+<textarea id="summary" class="miss" style="min-height:96px" placeholder="예) 501-3 낙상 고위험, 난간 상시 올림. 자정 검사 결과 확인 후 이상 시 당직의 연락."></textarea>
+</div></div>
+<div class="warn" id="warnBox">요약을 입력해야 <b>확인 처리</b>를 할 수 있습니다. <b>(422)</b></div>
+<div class="row-actions"><button class="btn sec">나중에 하기</button><button class="btn" id="confirmBtn" disabled>확인 처리</button></div>
+<script>
+(function(){
+  var ta=document.getElementById('summary'), btn=document.getElementById('confirmBtn'),
+      warn=document.getElementById('warnBox'), badge=document.getElementById('stBadge');
+  function sync(){ var ok=ta.value.trim().length>0;
+    btn.disabled=!ok; ta.classList.toggle('miss',!ok);
+    warn.style.display=ok?'none':'block'; }
+  ta.addEventListener('input',sync); sync();
+  btn.addEventListener('click',function(){
+    if(btn.disabled) return;
+    badge.className='st st-conf'; badge.textContent='확인 완료 · CONFIRMED';
+    ta.readOnly=true; btn.disabled=true; btn.textContent='확인 완료';
+    warn.className='ok'; warn.style.display='block';
+    warn.innerHTML='<b>확인 처리되었습니다.</b> 22:41 · 요약과 확인 시각이 기록되었고, 보낸 사람(한서윤 간호사)에게 <b>수신 확인됨</b>으로 표시됩니다.';
+  });
+})();
+</script>
+</div>
+<div class="side"><h3>확인 처리를 하면</h3>
+<div class="kv">상태 <b>SENT &rarr; CONFIRMED</b><br>요약과 <b>확인 시각</b>이 함께 기록됩니다<br>보낸 사람에게 <b>수신 확인됨</b>으로 표시됩니다</div>
+<div class="kv" style="border-top:1px solid #E4EBED;padding-top:14px;margin-top:18px;color:#7A8A90">
+확인 처리는 <b style="color:#1E2B30">이 입원 건의 인계 담당(다음 근무 팀 차지)</b>만 할 수 있습니다 (403)<br>같은 팀 액팅은 열람만 합니다<br>이미 확인된 인계는 다시 처리할 수 없습니다 (409)</div>
+</div></div></div></body></html>

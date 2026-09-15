@@ -1,0 +1,27 @@
+%% 인계 전달 상세 — 앞번 팀 차지 → 뒷번 팀 차지 (같은 팀 액팅은 열람)
+sequenceDiagram
+    autonumber
+    actor A as 앞번 팀 차지
+    participant S as 너와나의인계고리
+    actor B as 뒷번 팀 차지
+    actor C as 뒷번 같은 팀 액팅
+
+    Note over S: 병동 공통 필수 항목은 수간호사가 미리 정의 (F-06)
+
+    A->>S: 인계 작성 (9_handover_write_nurse) · status = DRAFT
+    Note right of A: 인계 담당 차지만 작성 (그 외 403)<br/>병동 공통 필수 항목 체크리스트 · 미작성 항목 경고
+    A->>S: 인계 전달 → status = SENT
+    S-->>B: 받을 인계 표시 (10_handover_receive_nurse)
+    S-->>C: 같은 인계 열람 (쓰기 권한 없음)
+    B->>S: 내용 확인
+    B->>S: 핵심 내용을 자기 말로 요약 입력 (receiver_summary)
+    B->>S: 확인 처리 요청
+    S->>S: 검증 — 요약 입력 여부 · 수신 당사자 여부
+    alt 요약 미입력 또는 당사자 아님
+        S-->>B: 거부 (422 / 403)
+    else 통과
+        S->>S: confirmed_at 기록 → status = CONFIRMED
+        S-->>A: 수신 확인됨 표시
+    end
+
+    Note over A,B: 퇴원(inpatient_stay = CLOSED) 건에는 신규 인계 작성 불가 → 409

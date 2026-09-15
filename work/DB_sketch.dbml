@@ -1,0 +1,579 @@
+// ==========================================================
+// 너와나의인계고리 — 데이터 모델 (전체 12 엔티티)
+// 핵심 관계: shift_assignment → handover_assignment → inpatient_stay → handover
+// 2026-09-16 · 1일차 인터뷰 반영 (docs/04 15라운드 — team 도입 · care_assignment 이름 변경 · 템플릿 병동 단위화)
+// dbdiagram.io 에 붙여넣어 관계선 확인용
+//
+// [캡처 전 배치 정리]
+//   기술서 6장 캡처는 핵심 체인이 좌 → 우로 읽히게 놓는다
+//     ward · users · team · role_type  |  shift_assignment  |  handover_assignment  |  inpatient_stay
+//   현재 기본 배치는 inpatient_stay 가 아래쪽에 있어 연결선이 도표를 가로지른다.
+//   inpatient_stay 를 handover_assignment 오른쪽·아래로 끌어다 놓으면 선 교차가 사라진다.
+// ==========================================================
+
+// ----------------------------------------------------------
+// Enum
+// ----------------------------------------------------------
+Enum UserType {
+  HEAD_NURSE [note: '수간호사(병동 팀장). 병동 단위 쓰기 권한의 유일한 출처']
+  NURSE      [note: '일반 간호사. 본인 근무·인계 담당 범위 안에서만 쓰기']
+}
+
+Enum ShiftCode {
+  D [note: '데이 07:00-15:00']
+  E [note: '이브닝 14:00-22:00']
+  N [note: '나이트 22:00-08:00']
+}
+
+Enum ShiftStatus {
+  ACTIVE [note: '정상 근무']
+  ABSENT [note: '결원 — 수간호사가 등록. 자동 감지가 아니다. 행은 삭제하지 않고 남긴다(그날 누가 결원이었는지가 기록)']
+}
+
+Enum HandoverAssignmentStatus {
+  ACTIVE   [note: '현재 유효한 인계 담당']
+  REPLACED [note: '재배정으로 교체됨. 행을 덮어쓰지 않고 남긴다 — 과거 인계의 FK가 이 행을 가리키기 때문']
+}
+
+Enum StayStatus {
+  ACTIVE [note: '재원 중']
+  CLOSED [note: '퇴원. 신규 인계 작성 불가(409), 기존 인계는 읽기 전용 보관']
+}
+
+// ----------------------------------------------------------
+// 참조 테이블 (이번 스케치에서는 최소 컬럼만)
+// ----------------------------------------------------------
+Table ward {
+  id integer [primary key, increment]
+  name varchar [not null, note: '예: 5병동']
+}
+
+Table team {
+  id integer [primary key, increment]
+  ward_id integer [not null, note: 'FK: 소속 병동']
+  name varchar [not null, note: '예: A팀 / B팀']
+
+  indexes {
+    (ward_id, name) [unique, note: '한 병동 안에서 팀명 중복 방지']
+  }
+
+  Note: '''
+  [팀이 환자를 공동 담당한다 — 현직 간호사 1명 확인 [C]]
+    이 병동은 A팀 / B팀으로 나누고, 팀이 호실 범위 기준으로 환자를 공동 담당한다.
+    팀 안에서 액팅별로 환자를 나누지 않는다.
+
+  [호실 범위는 모델에 두지 않는다]
+    팀의 환자 범위는 inpatient_stay.team_id 로 입원 건마다 붙인다.
+    호실 범위가 고정이어도 환자 명단은 매일 바뀐다(입·퇴원). "담당 환자를 미리 안다" 로 읽히면 안 된다.
+
+  [팀 이동 이력은 범위 밖]
+    팀 간 이동은 월 1회 있을까 말까다. users.team_id 는 현재 소속만 가진다.
+    과거 인계를 읽는 데는 지장이 없다 — handover_assignment 가 그 근무의 인계 담당을 이미 고정한다.
+  '''
+}
+
+Table users {
+  id varchar [primary key, note: 'PK: 사번']
+  name varchar [not null]
+  ward_id integer [not null, note:
+    'FK: 소속 병동. shift_assignment.ward_id 와 중복이 아니다 — 이쪽은 "이 사람이 어디 소속인가", 저쪽은 "이 근무가 어느 병동의 근무인가"다. 파견·지원 근무에서 둘이 달라질 수 있으므로 분리해 둔다']
+  team_id integer [note:
+    'FK: 현재 소속 팀. 근무가 아니라 사람에 붙는다(팀은 거의 고정). 수간호사는 팀에 속하지 않으므로 NULL 허용']
+  user_type UserType [not null, default: 'NURSE', note:
+    '권한 판정의 출처. 로그인 시스템은 인증(누구인가)만 하고, 인가(무엇을 할 수 있는가)는 이 컬럼이 정한다']
+
+  note: '''
+  [수간호사 권한을 어디서 판정하는가]
+    "해당 병동 수간호사" = users.user_type = HEAD_NURSE AND users.ward_id = 대상 자원의 ward_id
+    두 조건을 모두 만족하지 않으면 403. F-01 · F-02 · F-05 · F-06 의 쓰기 권한이 전부 이 한 줄로 판정된다.
+
+  [왜 role_type 으로 판정하지 않는가]
+    role_type 은 "그 근무조에서 맡은 역할"(차지 / 서브차지 / 액팅)이다. 근무조마다 달라지고, 근무가 없는 날에는 아예 행이 없다.
+    수간호사는 근무표에 오르지 않는 날에도 배정을 바꿔야 하므로, 근무 기반 역할로는 권한을 판정할 수 없다.
+    즉 role_type = 근무 중 역할, user_type = 직책. 둘은 층위가 다르다.
+
+  [왜 users.ward_id 로 판정하는가]
+    권한은 소속 기준이다. 수간호사가 다른 병동에 지원 근무를 나가더라도(shift_assignment.ward_id 가 달라지더라도)
+    그 병동의 배정을 바꿀 권한은 없다. 그래서 판정에는 shift_assignment.ward_id 가 아니라 users.ward_id 를 쓴다.
+
+  [읽기는 별도 규칙 — 여기서 판정하지 않는다]
+    읽기는 3단이다. ① 병동 범위(HEAD_NURSE) ② 인계 담당 범위(handover_assignment)
+    ③ 같은 팀·같은 근무 — 내 근무와 같은 날·근무조의, 내 팀(users.team_id = inpatient_stay.team_id) 입원 건과 그 인계(SENT 이후).
+    ③ 이 없으면 액팅이 차지가 받은 인계를 읽지 못한다. 쓰기 권한표와 분리해서 API 계층이 검사한다.
+
+  [DBML로 표현할 수 없는 제약 — API 계층에서 검증]
+    · team_id 가 NULL 이 아니면 team.ward_id = users.ward_id 여야 한다 → 위반 시 422
+
+  [이번 범위의 전제]
+    병동당 HEAD_NURSE 는 1명으로 본다. 겸직 · 대리 수간호사는 Out of scope.
+    이 전제가 깨지면 users 에 컬럼을 더하는 게 아니라 (user_id, ward_id, user_type) 별도 테이블로 분리해야 한다.
+  '''
+}
+
+Table role_type {
+  id integer [primary key, increment]
+  ward_id integer [not null, note: 'FK: 병동마다 역할 체계가 다를 수 있다']
+  name varchar [not null, note: '차지 / 서브차지 / 액팅 등 — 수간호사가 정의하므로 Enum이 아니라 테이블']
+
+  indexes {
+    (ward_id, name) [unique, note: '한 병동 안에서 역할명 중복 방지']
+  }
+
+  Note: '''
+  [시연 데이터 — 5병동]
+    차지 · 서브차지 · 액팅 3행. 스키마 변경 없이 행 추가만으로 서브차지를 넣었다(테이블로 둔 이유).
+    데이 = 차지 1 · 서브차지 1 · 액팅 N / 나이트 = 차지 1 · 액팅 1 (현직 간호사 1명 확인 [C])
+    듀티별 구성 차이는 스키마로 강제하지 않는다 — 병동마다 다르다는 것도 같은 인터뷰에서 확인했다.
+  '''
+}
+
+// ----------------------------------------------------------
+// 근무 배정 — 누가 / 언제 / 어느 근무조 / 어느 역할
+// ----------------------------------------------------------
+Table shift_assignment {
+  id integer [primary key, increment]
+
+  ward_id integer [not null, note:
+    'FK: 병동. role_type.ward_id 로 대신하지 않는다 — role_type_id 가 NULL 인 역할 미배정 근무에서는 병동을 알 수 없게 되고, 대체자 검증 규칙(같은 병동인가)을 검사할 수 없다']
+
+  user_id varchar [not null, note: 'FK: 근무자']
+  work_date date [not null]
+  shift_code ShiftCode [not null]
+
+  role_type_id integer [note:
+    'FK: 역할. NULL 허용 — 근무는 확정됐지만 역할이 아직 배정되지 않은 상태가 실제로 존재한다. 이때 간호사 화면은 "역할 배정 대기"로 표시된다']
+
+  status ShiftStatus [not null, default: 'ACTIVE']
+
+  covered_at timestamp [note:
+    '결원의 대체 완료를 수간호사가 확인한 시각. NULL 이면 아직 대체 전. 대시보드는 status=ABSENT AND covered_at IS NULL 만 표시한다. 주의: 실제 대체가 이뤄졌다는 자동 증명이 아니라 사람의 확인 기록이다. 유효한 SUBSTITUTE_ASSIGNED 로그 없이 이 값을 기록하려 하면 422']
+
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    (user_id, work_date, shift_code) [unique, note: '같은 사람이 같은 날 같은 근무조에 두 번 배정되지 않는다']
+    (ward_id, work_date, shift_code) [note: '배정 보드 조회용']
+  }
+
+  Note: '''
+  [ward_id 가 세 곳에 있는 이유]
+    users.ward_id            = 이 사람의 소속 병동
+    shift_assignment.ward_id = 이 근무가 어느 병동의 근무인가 (권한 경계의 기준)
+    role_type.ward_id        = 이 역할 체계가 어느 병동의 것인가
+  중복이 아니라 서로 다른 질문에 답한다. 권한 판정은 항상 shift_assignment.ward_id 를 쓴다.
+
+  [팀은 여기에 두지 않는다]
+    팀은 근무마다 정해지는 값이 아니라 사람의 소속이다 → users.team_id
+
+  [DBML로 표현할 수 없는 제약 — API 계층에서 검증]
+  · role_type_id 가 NULL 이 아니면 role_type.ward_id = shift_assignment.ward_id 여야 한다
+    (다른 병동의 역할을 배정할 수 없다) → 위반 시 422
+
+  [읽기 권한의 기준점]
+  간호사의 "내 근무·역할"은 이 테이블만으로 판정한다 (user_id = me).
+  우리 팀 환자는 users.team_id = inpatient_stay.team_id, 인계 담당은 아래 handover_assignment 기준이다.
+  층위를 하나로 묶으면 인계 담당 지정 전에 자기 근무 화면조차 볼 수 없게 된다.
+  '''
+}
+
+// ----------------------------------------------------------
+// 입원 건 — 환자 마스터를 보유하지 않는다
+// ----------------------------------------------------------
+Table inpatient_stay {
+  id integer [primary key, increment]
+  ward_id integer [not null, note: 'FK: 재원 병동']
+  team_id integer [not null, note:
+    'FK: 이 입원 건을 공동 담당하는 팀. 팀 범위를 호실이 아니라 입원 건에 붙인다 — 호실 범위가 고정이어도 환자 명단은 매일 바뀐다']
+  bed_no varchar [not null, note: '병상 번호. 예: 501-3']
+
+  patient_ref_code varchar [not null, note:
+    '외부 참조 코드. 환자 마스터는 이 시스템이 보유하지 않는다 — 원본은 EMR이다. 이름·주민번호·연락처를 두지 않는다. 다만 병동 내부에서는 병상번호만으로 재식별되므로 "최소화"이지 "해소"가 아니다 (개인정보보호법 제23조 민감정보)']
+
+  admitted_at timestamp [not null]
+  discharged_at timestamp [note: '퇴원 시각. status=CLOSED 와 함께 기록']
+  status StayStatus [not null, default: 'ACTIVE']
+
+  indexes {
+    (ward_id, bed_no, status) [note: '병동 배정 보드에서 현재 재원 건 조회용']
+    (team_id, status) [note: '우리 팀 환자 목록 조회용 (/me/shifts 의 team_stays[])']
+  }
+
+  Note: '''
+  [생명주기]
+  퇴원 → status = CLOSED
+    · 신규 인계 작성 금지 (409)
+    · 기존 인계는 읽기 전용 보관 (삭제하지 않음)
+    · 보관·파기 기간은 병원 정책 및 법령 확인 후 결정 — 이번 범위 밖
+      (이 서비스의 인계 메모가 법적 간호기록부에 해당하는지 자체가 판단이 필요한 사안)
+
+  [DBML로 표현할 수 없는 제약 — API 계층에서 검증]
+    · team.ward_id = inpatient_stay.ward_id 여야 한다 → 위반 시 422
+  '''
+}
+
+// ----------------------------------------------------------
+// 인계 담당 — 이 모델의 유일한 M:N 해소
+// ----------------------------------------------------------
+Table handover_assignment {
+  id integer [primary key, increment]
+  shift_assignment_id integer [not null, note: 'FK: 어느 근무(의 차지)가']
+  inpatient_stay_id integer [not null, note: 'FK: 어느 입원 건의 인계를 맡는가']
+  status HandoverAssignmentStatus [not null, default: 'ACTIVE']
+  created_at timestamp [not null, default: `now()`]
+
+  indexes {
+    (shift_assignment_id, status) [note: '내 근무의 현재 인계 담당 목록 조회용']
+    (inpatient_stay_id, status) [note: '이 입원 건의 인계를 현재 누가 맡는가']
+  }
+
+  Note: '''
+  [뜻 — 09-16 이름 변경 (구 care_assignment)]
+  handover_assignment = "그 근무에서 이 입원 건의 인계를 작성·수신할 차지를 지정하는 경로"
+  팀의 환자 범위는 이 테이블이 아니라 inpatient_stay.team_id 로 표현한다.
+  이 병동은 팀이 환자를 공동 담당한다(현직 간호사 1명 확인 [C]) — 개인 ↔ 환자 담당 배정 행위는 현장에 없다.
+  → 팀 차지의 근무에만 만든다. 행 수 = 근무별 입원 건 수 (팀 인원 × 환자 수가 아니다)
+
+  [이 모델의 유일한 M:N]
+  근무 하나가 여러 입원 건의 인계를 맡고, 입원 건 하나가 여러 근무(D/E/N)의 차지에 걸친다.
+  억지로 만든 M:N 이 아니라 도메인에서 나온 것이다.
+
+  [역할로 강제하지 않는다 — 수간호사가 지정한다]
+  "차지가 작성·수신" 은 현장의 원칙이고, 이 테이블은 그 원칙을 수간호사의 지정(F-02)으로 기록한다.
+  shift_assignment 의 역할이 차지인지, 팀이 같은지를 DB·API 로 강제하지 않는다.
+    · 차지 결원 시 서브차지가 올라가는지, 다른 팀에서 오는지 아직 확인하지 않았다
+    · 강제하면 확인되지 않은 운용을 금지하는 셈이 된다
+  화면(4_assignment_board_manager)은 그 근무의 팀 차지를 기본값으로 제안한다.
+
+  [append-only]
+  재배정 시 이 행을 덮어쓰지 않는다.
+    기존 행 → status = REPLACED (행 보존)
+    새 행   → status = ACTIVE
+  이유: handover.from/to_handover_assignment_id 가 과거의 송·수신자를 가리킨다.
+        행을 덮어쓰면 이미 완료된 과거 인계의 수신자까지 바뀐 것처럼 보인다.
+        FK 가 가리키는 행이 변하면 그건 기록이 아니다.
+
+  [DBML로 표현할 수 없는 제약 — API 계층에서 검증]
+  · 같은 shift_assignment 에 같은 inpatient_stay 가 ACTIVE 로 둘 이상 존재할 수 없다
+    (부분 유니크 인덱스라 DBML 문법으로 표현 불가)
+  · shift_assignment.ward_id = inpatient_stay.ward_id 여야 한다
+    (다른 병동 입원 건의 인계 담당을 지정할 수 없다)
+  '''
+}
+
+// ----------------------------------------------------------
+// Relationships
+// ----------------------------------------------------------
+Ref: users.ward_id > ward.id
+Ref: users.team_id > team.id
+Ref: team.ward_id > ward.id
+Ref: role_type.ward_id > ward.id
+
+Ref: shift_assignment.ward_id > ward.id
+Ref: shift_assignment.user_id > users.id
+Ref: shift_assignment.role_type_id > role_type.id
+
+Ref: inpatient_stay.ward_id > ward.id
+Ref: inpatient_stay.team_id > team.id
+
+Ref: handover_assignment.shift_assignment_id > shift_assignment.id
+Ref: handover_assignment.inpatient_stay_id > inpatient_stay.id
+
+// ==========================================================
+// 2/3 — 인계 계열
+// ==========================================================
+
+Enum HandoverStatus {
+  DRAFT      [note: '작성 중. 송신자만 조회·수정 가능. 수신자가 조회하면 403']
+  SENT       [note: '전달됨. 이때부터 수신자와 같은 팀·같은 근무의 액팅이 볼 수 있다. 필수 항목이 모두 채워져야 이 상태로 갈 수 있다(422)']
+  CONFIRMED  [note: '수신자가 요약을 입력하고 확인 처리함. 되돌리기 불가(409). 종결 상태']
+  SUPERSEDED [note:
+    '수신자가 결원되어 이 인계가 대체됨. 행을 고치지 않고 이 상태로 보존하고, 새 수신자에게 후속 인계를 새로 발행한다. 읽기 전용이며 미확인 건수(status=SENT)에서 자동으로 빠진다. 종결 상태']
+}
+
+// ----------------------------------------------------------
+// 병동 인계 항목 정의 (F-06) — ward 1 : N
+// ----------------------------------------------------------
+Table handover_template_item {
+  id integer [primary key, increment]
+  ward_id integer [not null, note: 'FK: 이 병동의 모든 인계가 쓰는 항목']
+  label varchar [not null, note: '항목명. 예: 안전 고려사항(낙상·억제대·알레르기 등)']
+  is_required boolean [not null, default: false, note: 'true 이면 이 항목이 비어 있는 동안 SENT 로 갈 수 없다']
+  sort_order integer [not null, note: '화면 표시 순서']
+
+  indexes {
+    (ward_id, sort_order) [unique, note: '같은 병동 안에서 순서 중복 방지']
+  }
+
+  Note: '''
+  [1 : N 이다. M:N 이 아니다]
+  v3 에서 이 테이블을 "M:N 해소"라고 불렀으나 짝이 될 엔티티가 없었다.
+  이 모델의 유일한 M:N 은 handover_assignment 다.
+
+  [왜 역할별이 아닌가 — 09-16 변경 (구 role_handover_template_item.role_type_id)]
+  인계는 차지가 받고, 액팅은 차지 옆에서 같은 인계를 듣는다 (현직 간호사 1명 확인 [C]).
+  받는 사람의 역할로 항목을 가를 축이 없다 → 병동 단위 단일 템플릿.
+
+  [출처 표기 — 기술서·발표에서도 같은 표현을 쓴다]
+  항목 구성은 2014년 국내 인수인계 표준화 연구(김은만 외)의 표준화된 7개 범주를 참고한 것이다.
+  필수·선택 구분은 연구 원문이 아니라 이번 서비스의 템플릿 설계안이다.
+
+  [스냅샷 vs 참조]
+  handover_item 은 이 템플릿을 "복사"해서 만든다(스냅샷).
+  템플릿을 나중에 고쳐도 이미 작성된 인계의 항목 구성이 바뀌면 안 되기 때문이다.
+  → handover_assignment 를 append-only 로 둔 것과 같은 이유다.
+  '''
+}
+
+// ----------------------------------------------------------
+// 인계 — 누가 누구에게
+// ----------------------------------------------------------
+Table handover {
+  id integer [primary key, increment]
+  inpatient_stay_id integer [not null, note: 'FK: 어느 입원 건에 대한 인계인가']
+
+  from_handover_assignment_id integer [not null, note:
+    'FK: 보내는 쪽. 이 handover_assignment 의 shift_assignment.user_id 가 작성 권한자다 (그 외 403 — 액팅 포함)']
+  to_handover_assignment_id integer [not null, note:
+    'FK: 받는 쪽. 이 handover_assignment 의 shift_assignment.user_id 만 요약 입력·확인 처리를 할 수 있다(그 외 403). 같은 팀·같은 근무의 액팅은 SENT 이후 열람만 한다']
+
+  status HandoverStatus [not null, default: 'DRAFT']
+  created_at timestamp [not null, default: `now()`]
+  sent_at timestamp [note: 'SENT 로 전이된 시각']
+
+  superseded_at timestamp [note: 'SUPERSEDED 로 전이된 시각. 변경 이력 타임라인에서 결원 시점과 맞춰 읽는다']
+  superseded_by_handover_id integer [note:
+    'FK(자기참조): 이 인계를 이어받은 후속 인계. SUPERSEDED 이면 반드시 채워져야 하고(아니면 422), 그 외 상태에서는 반드시 NULL 이어야 한다. 이 컬럼이 없으면 SUPERSEDED 상태만 남고 후속을 찾을 수 없다']
+
+  indexes {
+    (to_handover_assignment_id, status) [note: '내가 받을 인계 조회용. 미확인 건수 집계(status=SENT)도 이 인덱스를 쓴다']
+    (from_handover_assignment_id) [note: '내가 보낸 인계 조회용']
+    (inpatient_stay_id, created_at) [note: '이 입원 건의 인계 이력. 같은 팀 액팅의 열람(읽기 3단 ③)도 이 인덱스를 쓴다']
+  }
+
+  Note: '''
+  [v4 에서 추가된 고리]
+  v3 의 handover 는 inpatient_stay_id 만 가지고 있었다.
+  그러면 "어느 근무의 누가 누구에게 인계했는가"를 표현할 수 없다.
+  from/to 가 있어야 접근 권한·read-back 담당자·재배정 추적 세 가지가 판정된다.
+  09-16: from/to 는 "담당 간호사 ↔ 담당 간호사" 가 아니라 "앞 근무 팀 차지 ↔ 다음 근무 팀 차지" 다 (현직 간호사 1명 확인 [C]).
+
+  [과거 인계는 불변이다]
+  from/to 가 가리키는 handover_assignment 는 덮어쓰지 않는다(status=REPLACED 로 보존).
+  행을 덮어쓰면 이미 완료된 과거 인계의 수신자까지 바뀐 것처럼 보인다.
+
+  [DBML로 표현할 수 없는 제약 — API 계층에서 검증]
+  · from_handover_assignment.inpatient_stay_id = to_handover_assignment.inpatient_stay_id = inpatient_stay_id
+    (세 곳이 같은 입원 건을 가리켜야 한다)
+  · from_handover_assignment_id != to_handover_assignment_id (자기 자신에게 인계 금지)
+  · inpatient_stay.status = CLOSED 이면 신규 생성 금지 → 409
+  · DRAFT → SENT 는 is_required 인 handover_item 이 모두 채워졌을 때만 → 아니면 422
+  · CONFIRMED 로의 전이는 status = SENT 일 때만 → DRAFT 도, 이미 CONFIRMED 도 409
+  · SENT 이후 handover_item 수정 금지 · CONFIRMED 이후 receiver_summary 수정 금지 → 409
+    (→ handover_item 의 [스냅샷 불변 규칙 3])
+  · SUPERSEDED 규칙 6가지 → 아래 [수신자가 결원되면]
+
+  [수신자가 결원되면 — SUPERSEDED]
+  문제: to_handover_assignment 를 REPLACED 로 바꿔도 이 handover 는 원래 수신자를 계속 가리킨다.
+        새 인계 담당은 기존 인계를 볼 수 없고, 기존 건은 SENT 로 남아 미확인 건수에 계속 잡힌다.
+  답  : 기존 행을 고치지 않는다. SUPERSEDED 로 보존하고 새 수신자에게 후속 인계를 발행한다.
+        to_handover_assignment_id 를 덮어쓰면 과거 인계의 수신자가 나중에 바뀐 것처럼 보인다.
+
+  1 전이 가능 범위
+      DRAFT     → SUPERSEDED  가능 (작성자가 이미 쓴 내용을 새 수신자가 받아야 한다)
+      SENT      → SUPERSEDED  가능
+      CONFIRMED → SUPERSEDED  금지 409
+      SUPERSEDED 에서 다른 상태로  금지 409 (종결 상태)
+
+    ★ CONFIRMED 를 제외하는 이유
+      받은 사람이 확인까지 했으면 그 인계는 이미 닫힌 고리다.
+      그 시점 이후의 담당 변경은 인계 실패가 아니라 정상 교대이고,
+      reassignment_log 의 HANDOVER_OWNER_TRANSFERRED 로 남은 뒤 새 인계가 새로 작성된다.
+      여기를 구분하지 않으면 "확인까지 끝난 인계가 다시 미확인으로 돌아오는" 결과가 된다.
+
+  2 SUPERSEDED 로 전이할 때 후속 handover 를 같은 트랜잭션에서 만들고
+    superseded_by_handover_id 를 채운다. 후속이 없으면 422 — 인계가 끊긴 채 종결되는 것을 막는다.
+
+  3 후속 handover 의 status 는 원본의 status 를 승계한다 (DRAFT→DRAFT, SENT→SENT).
+    대체는 작성 진행도를 되돌리는 사건이 아니다. created_at · sent_at 은 새로 찍는다.
+
+  4 후속 handover 의 from_handover_assignment_id 는 원본과 같다. 보내는 사람은 바뀌지 않았다.
+
+  5 후속 handover 의 항목은 원본 handover_item(label + content)을 그대로 복사한다.
+      수신자만 바뀐 것이지 이미 쓴 내용이 사라질 이유가 없다.
+      템플릿이 병동 단위(09-16 Q3 해소)라 수신자가 바뀌어도 항목 구성은 같다 — 보정 규칙이 필요 없다.
+
+  6 원본에 이미 handover_receipt 행이 있을 수 있다(received_at 만 찍힌 상태).
+    그 행은 지우지 않는다 — 원래 수신자가 언제 열어봤는지도 기록이다.
+    confirmed_at 은 NULL 인 채로 남는다. 1:1 제약은 그대로 유지된다.
+
+  [집계식은 바꾸지 않는다]
+  미확인 건수 = status = SENT. SUPERSEDED 가 별도 상태이므로 자동으로 빠진다.
+  이것이 to_handover_assignment_id 를 덮어쓰지 않고 상태를 하나 늘린 방식의 이점이다.
+
+  [채택하지 않은 대안 — 2-hop 추론]
+  superseded_by_handover_id 없이도 후속을 찾을 수는 있다.
+    SUPERSEDED.to_handover_assignment_id → reassignment_log(HANDOVER_OWNER_TRANSFERRED).from_handover 매칭
+    → to_handover → 그 handover_assignment 를 to 로 가진 handover
+  조인 2번이고, 무엇보다 "SUPERSEDED 인데 후속이 없다"를 제약으로 표현할 수 없다.
+  컬럼 하나로 그 불변식을 검사할 수 있으므로 자기참조 FK 를 택했다.
+  '''
+}
+
+// ----------------------------------------------------------
+// 인계 항목 — 템플릿의 스냅샷
+// ----------------------------------------------------------
+Table handover_item {
+  id integer [primary key, increment]
+  handover_id integer [not null]
+  label varchar [not null, note: '작성 시점의 템플릿 항목명을 복사해 둔다']
+  content text [note: '작성 내용. is_required = true 인데 비어 있으면 SENT 불가']
+  is_required boolean [not null, default: false, note: '작성 시점의 템플릿 값을 복사해 둔다']
+  sort_order integer [not null]
+
+  indexes {
+    (handover_id, sort_order) [unique]
+  }
+
+  Note: '''
+  [스냅샷 불변 규칙 3 — DBML로 표현할 수 없다. API 계층에서 검증]
+  1 템플릿(handover_template_item)을 수정해도 이미 생성된 handover_item 은 바뀌지 않는다.
+    DRAFT 도 예외가 아니다. 복사는 handover 생성 시점에 1회뿐이다.
+    → 작성 중에 항목이 사라지거나 늘어나면, 쓰던 사람이 무엇을 쓰고 있었는지 알 수 없게 된다.
+
+  2 handover.status 가 SENT 이후이면 label · content · is_required 수정 불가 → 409.
+    고칠 것이 있으면 새 인계를 쓴다. 보낸 뒤 내용이 바뀌면 수신자가 읽은 것과 기록이 달라진다.
+
+  3 (짝 규칙) CONFIRMED 이후 handover_receipt.receiver_summary 수정 불가 → 409.
+    read-back 은 "그 시점에 무엇으로 이해했는가"의 기록이다. 사후에 고치면 기록의 뜻이 사라진다.
+
+  → 이 셋이 있어야 "과거 인계는 불변" 이 실제로 성립한다.
+    handover_assignment 의 append-only 는 인계의 당사자를 고정하는 규칙이고,
+    이 셋은 인계의 내용을 고정하는 규칙이다. 둘 다 있어야 과거 인계를 그대로 다시 읽을 수 있다.
+  '''
+}
+
+// ----------------------------------------------------------
+// 수신 확인 — ack 가 아니라 read-back
+// ----------------------------------------------------------
+Table handover_receipt {
+  id integer [primary key, increment]
+  handover_id integer [not null, unique, note: 'FK: 인계 1건당 수신 기록 1건 (1:1)']
+
+  received_at timestamp [note: '수신자가 화면을 연 시각. 이것만으로는 확인 완료가 아니다']
+
+  receiver_summary text [note:
+    '수신자가 핵심 내용을 자기 말로 요약한 것. I-PASS 의 Synthesis by receiver 에 해당한다. 비어 있으면 확인 처리 불가(422). 단순 클릭 기록(ack)과 read-back 을 가르는 지점이며, 이 필드가 없으면 I-PASS 를 근거로 인용할 수 없다']
+
+  confirmed_at timestamp [note: '확인 처리된 시각. 기록되면 handover.status 가 CONFIRMED 로 전이된다']
+
+  Note: '''
+  [3수준 중 어디까지인가]
+    ① ack        received_at 만            — 이번 범위 아님(부족하다)
+    ② read-back  + receiver_summary        — ★ 이번 범위
+    ③ closed-loop + 질문·수정 요청          — 범위 밖. 기술서 8장 "향후 개선"
+  '''
+}
+
+// ==========================================================
+// 3/3 — 변경 이력
+// ==========================================================
+
+Enum ChangeType {
+  ABSENCE_REGISTERED         [note: '수간호사가 결원을 등록. from_shift 만 채운다']
+  SUBSTITUTE_ASSIGNED        [note: '대체자가 그 근무를 서기로 확정. from_shift + to_shift']
+  HANDOVER_OWNER_TRANSFERRED [note: '인계 담당 입원 건 1건 이관(차지 자리가 바뀔 때). 네 칸 모두. 입원 건 수만큼 행이 생긴다. 팀 공동 담당이라 액팅 결원에서는 생기지 않는다']
+  COVER_CONFIRMED            [note: '수간호사가 대체 완료로 확인 → shift_assignment.covered_at 기록. from_shift 만']
+}
+
+Table reassignment_log {
+  id integer [primary key, increment]
+
+  change_type ChangeType [not null, note: '이 값이 아래 네 FK 의 유효 조합을 결정한다']
+
+  from_shift_assignment_id integer [not null, note: 'FK: 결원자의 근무. 모든 change_type 에서 필수']
+  to_shift_assignment_id integer [note: 'FK: 대체자의 근무. SUBSTITUTE_ASSIGNED / HANDOVER_OWNER_TRANSFERRED 에서만']
+  from_handover_assignment_id integer [note: 'FK: 이관 전 인계 담당. HANDOVER_OWNER_TRANSFERRED 에서만']
+  to_handover_assignment_id integer [note: 'FK: 이관 후 인계 담당. HANDOVER_OWNER_TRANSFERRED 에서만']
+
+  changed_by_user_id varchar [not null, note: 'FK: 이 변경을 수행한 수간호사']
+  change_reason varchar [not null, note:
+    '변경 사유. ABSENCE_REGISTERED 만 화면에서 입력을 강제하고, 나머지 세 change_type 은 그 결원 건의 사유를 서버가 복사한다 — 아래 [change_reason 의 출처] 참조']
+  changed_at timestamp [not null, default: `now()`]
+
+  indexes {
+    (from_shift_assignment_id, change_type) [note: '결원 건별 이력 조회 · COVER_CONFIRMED 가드 판정용 · change_reason 복사 원본 조회용']
+    (to_shift_assignment_id, change_type) [note:
+      '★ 대체자로 지정된 쪽의 조회용. /me/shifts 의 has_reassignment 는 from/to 양방향을 모두 보는데, from 쪽만 인덱스가 있으면 대체자 조회가 풀스캔이 된다. 결원이 났을 때 가장 급한 조회가 바로 이쪽이다']
+    (changed_at) [note: '변경 이력 타임라인 화면']
+  }
+
+  Note: '''
+  [왜 테이블을 쪼개지 않았나]
+  결원 이력은 두 층위다 — 근무 자리(shift) 층위와 인계 담당(handover_assignment) 층위.
+  층위 2는 층위 1에 딸린 결과이고, 인계 담당 지정 전이나 액팅 결원에는 층위 1만 존재한다.
+  v5 까지는 담당 층위 FK 만 있어서 "담당 0건 결원"의 이력을 아예 만들 수 없었다.
+  두 층위는 같은 사건의 두 면이고 변경 이력 화면은 하나로 읽혀야 하므로 한 테이블에 둔다.
+  다형성 FK(scope + target_id)는 쓰지 않았다 — FK 제약을 걸 수 없어 설계상 약점이 된다.
+
+  [change_type 별 유효 조합]
+    change_type                 from_shift  to_shift  from_handover  to_handover
+    ABSENCE_REGISTERED             필수        —            —             —
+    SUBSTITUTE_ASSIGNED            필수       필수          —             —
+    HANDOVER_OWNER_TRANSFERRED     필수       필수         필수          필수
+    COVER_CONFIRMED                필수        —            —             —
+  → 담당 0건 결원(액팅 결원 포함)의 이력 = ABSENCE_REGISTERED → SUBSTITUTE_ASSIGNED → COVER_CONFIRMED (3행)
+
+  [DBML로 표현할 수 없는 불변 규칙 8개 — API 계층에서 검증, 위반 시 422]
+   1 from_handover_assignment.shift_assignment_id = from_shift_assignment_id
+   2 to_handover_assignment.shift_assignment_id   = to_shift_assignment_id
+   3 from_handover_assignment.inpatient_stay_id   = to_handover_assignment.inpatient_stay_id
+       (같은 입원 건이어야 이관이다. 네 칸이 다 채워져도 무관한 입원 건이 통과할 수 있다)
+   4 from_shift != to_shift (자기 자신을 대체자로 지정 금지)
+   5 to_shift.ward_id    = from_shift.ward_id
+   6 to_shift.work_date  = from_shift.work_date
+   7 to_shift.shift_code = from_shift.shift_code
+   8 to_shift.status     = ACTIVE (결원자를 대체자로 지정 금지)
+
+  [COVER_CONFIRMED 가드]
+  5~8 을 모두 만족하는 SUBSTITUTE_ASSIGNED 가 같은 from_shift_assignment_id 에 존재해야 한다.
+  존재 여부만 보면 무관한 날짜·병동의 대체 로그로 완료 처리가 통과한다.
+
+  [화면 보완 — 6_reassign_manager]
+  이 가드는 대체 "근무"만 본다. 결원자 이름으로 ACTIVE 인 handover_assignment 가 남아 있어도 완료 확인이 통과한다.
+  API 로는 막지 않는다 — 담당이 의도적으로 안 넘어가는 경우(그 환자가 그 사이 퇴원했다 등)가 정상이기 때문이다.
+  대신 화면이 "이 사람 이름으로 남은 인계 담당 2건"을 보여주고 사람이 판단한다.
+  covered_at 을 "사람의 확인 기록"으로 정의한 이상, 확인할 근거를 화면이 제공해야 그 뜻이 성립한다.
+
+  [change_reason 의 출처 — 요청에서 받지 않는다]
+    ABSENCE_REGISTERED          화면 입력(필수). 사람이 쓰는 사유는 이것 하나다
+    SUBSTITUTE_ASSIGNED         같은 from_shift_assignment_id 의 ABSENCE_REGISTERED 사유를 복사
+    HANDOVER_OWNER_TRANSFERRED  동일
+    COVER_CONFIRMED             동일  → 그래서 F-05 API 는 body 가 없다
+
+  왜 복사인가
+    · COVER_CONFIRMED 는 "이 결원이 메워졌다"는 기록이지 새로운 사건이 아니다.
+      같은 사유를 수간호사에게 다시 입력시키는 것은 불필요한 마찰이다.
+    · 두 로그의 사유가 서로 달라지면 한 결원 건의 이력을 이어서 읽을 수 없다.
+    · 복사할 ABSENCE_REGISTERED 가 없으면 422. status=ABSENT 전이 시 반드시 1행이 생기므로
+      정상 흐름에서는 발생하지 않지만, 로그 없이 만들어진 결원 상태를 걸러내는 방어선이다.
+  '''
+}
+
+// ----------------------------------------------------------
+// Relationships (2/3, 3/3)
+// ----------------------------------------------------------
+Ref: handover_template_item.ward_id > ward.id
+
+Ref: handover.inpatient_stay_id > inpatient_stay.id
+Ref: handover.from_handover_assignment_id > handover_assignment.id
+Ref: handover.to_handover_assignment_id > handover_assignment.id
+Ref: handover.superseded_by_handover_id > handover.id  // 자기참조 — dbdiagram 에서 handover 에 붙는 고리로 그려진다
+
+Ref: handover_item.handover_id > handover.id
+Ref: handover_receipt.handover_id - handover.id
+
+Ref: reassignment_log.from_shift_assignment_id > shift_assignment.id
+Ref: reassignment_log.to_shift_assignment_id > shift_assignment.id
+Ref: reassignment_log.from_handover_assignment_id > handover_assignment.id
+Ref: reassignment_log.to_handover_assignment_id > handover_assignment.id
+Ref: reassignment_log.changed_by_user_id > users.id

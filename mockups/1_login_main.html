@@ -1,0 +1,38 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>로그인 — 너와나의인계고리</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{width:1440px;height:900px;background:#fff;font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",Arial,sans-serif;color:#1E2B30;display:flex}
+.left{width:600px;background:#1E4D5C;color:#fff;padding:90px 64px;display:flex;flex-direction:column;justify-content:center}
+.left h1{font-size:40px;font-weight:700;letter-spacing:-1px}
+.left p{margin-top:18px;font-size:18px;color:#BBD4DB;line-height:1.6}
+.bar{width:64px;height:4px;background:#FB8C00;margin-top:34px}
+.left ul{margin-top:34px;list-style:none;font-size:15px;color:#9FBCC4;line-height:2.1}
+.right{flex:1;display:flex;align-items:center;justify-content:center}
+.box{width:400px}
+.box h2{font-size:24px;font-weight:700}
+.box .hint{margin-top:9px;font-size:14px;color:#7A8A90}
+label{display:block;margin-top:22px;font-size:14px;font-weight:600;color:#3C4F56}
+input{width:100%;margin-top:8px;height:50px;border:1px solid #DFE7EA;border-radius:8px;padding:0 15px;font-size:16px;font-family:inherit;background:#fff}
+input::placeholder{color:#A9B7BC}
+.err{margin-top:16px;background:#FFEDEE;border:1px solid #F5C6C4;color:#B3261E;font-size:14px;padding:12px 15px;border-radius:8px}
+.go{width:100%;margin-top:26px;height:52px;border:none;border-radius:8px;background:#1E4D5C;color:#fff;font-size:17px;font-weight:700;cursor:pointer;font-family:inherit}
+</style></head><body>
+<div class="left">
+  <h1>너와나의인계고리</h1>
+  <p>근무표가 끝나는 지점에서 시작합니다.<br>누가 인계를 맡았고 누가 받아 확인했는지 한 줄로 잇습니다.</p>
+  <div class="bar"></div>
+  <ul>
+    <li>· 오늘 내 역할과 우리 팀 환자</li>
+    <li>· 병동 공통 인계 항목</li>
+    <li>· 받았다는 기록</li>
+  </ul>
+</div>
+<div class="right"><div class="box">
+  <h2>로그인</h2>
+  <div class="hint">병원에서 발급받은 사번으로 로그인합니다.</div>
+  <label for="a">사번</label><input id="a" placeholder="예) N20260317">
+  <label for="b">비밀번호</label><input id="b" type="password" placeholder="비밀번호">
+  <div class="err">사번 또는 비밀번호가 올바르지 않습니다. (401)</div>
+  <button class="go">로그인</button>
+</div></div>
+</body></html>

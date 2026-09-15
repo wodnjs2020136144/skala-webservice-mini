@@ -1,0 +1,91 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>내 근무·역할·우리 팀 환자 —너와나의인계고리</title><style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{width:1440px;background:#fff;font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",Arial,sans-serif;color:#1E2B30;-webkit-font-smoothing:antialiased}
+.top{height:64px;background:#1E4D5C;display:flex;align-items:center;padding:0 40px;color:#fff}
+.brand{font-size:19px;font-weight:700;letter-spacing:-.4px}
+.brand small{font-weight:400;opacity:.65;margin-left:12px;font-size:14px;letter-spacing:0}
+.top .sp{flex:1}
+.who{font-size:15px;opacity:.9}
+.who b{font-weight:600}
+.btn-ghost{margin-left:20px;border:1px solid rgba(255,255,255,.45);background:none;color:#fff;font-size:14px;padding:7px 14px;border-radius:6px;cursor:pointer;font-family:inherit}
+.wrap{padding:36px 40px 60px}
+h1{font-size:28px;font-weight:700;letter-spacing:-.6px}
+.sub{margin-top:8px;font-size:15px;color:#5B6B70}
+.card{border:1px solid #DFE7EA;border-radius:10px;margin-top:20px;overflow:hidden;background:#fff}
+.card-h{padding:20px 24px;display:flex;align-items:center;gap:14px;border-bottom:1px solid #EDF2F4}
+.card-h.today{background:#F5F9FA}
+.date{font-size:19px;font-weight:700}
+.dow{font-size:15px;color:#5B6B70;margin-left:-6px}
+.tag{font-size:14px;font-weight:700;padding:6px 13px;border-radius:6px;letter-spacing:.3px}
+.t-d{background:#FFF3E0;color:#B35B00;border:1px solid #FFD9A8}
+.t-e{background:#EDE7F6;color:#5432A6;border:1px solid #D3C4EF}
+.t-n{background:#E3F2FD;color:#0D5AA7;border:1px solid #B9DBF7}
+.role{font-size:15px;font-weight:600;padding:6px 14px;border-radius:6px;background:#E8F5E9;color:#256B2C;border:1px solid #BEE3C2}
+.role.none{background:#F4F6F7;color:#7A8A90;border-color:#DFE7EA;font-weight:500}
+.flag{font-size:13px;color:#B35B00;background:#FFF6E8;border:1px solid #FFDCAE;padding:5px 11px;border-radius:6px}
+.sp{flex:1}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:13px;font-weight:600;color:#5B6B70;padding:13px 24px;background:#FAFCFC;border-bottom:1px solid #EDF2F4}
+td{padding:16px 24px;font-size:15px;border-bottom:1px solid #F2F6F7}
+tr:last-child td{border-bottom:none}
+.bed{font-weight:700;font-size:16px}
+.code{color:#5B6B70;font-size:14px;font-family:ui-monospace,Menlo,Consolas,monospace}
+.st{display:inline-block;font-size:13px;font-weight:600;padding:5px 11px;border-radius:5px}
+.st-none{background:#F4F6F7;color:#7A8A90}
+.st-draft{background:#FFF6E8;color:#B35B00}
+.st-sent{background:#FFEDEE;color:#B3261E}
+.st-conf{background:#E8F5E9;color:#256B2C}
+.act{text-align:right}
+.btn{font-size:14px;font-weight:600;padding:9px 16px;border-radius:7px;border:1px solid #1E4D5C;background:#1E4D5C;color:#fff;cursor:pointer;font-family:inherit}
+.btn.sec{background:#fff;color:#1E4D5C}
+.btn:disabled{background:#F2F6F7;border-color:#DFE7EA;color:#9AAAB0;cursor:default}
+.empty{padding:44px 24px;text-align:center}
+.empty .ic{font-size:30px}
+.empty .ttl{margin-top:12px;font-size:17px;font-weight:600;color:#3C4F56}
+.empty .dsc{margin-top:7px;font-size:14px;color:#7A8A90}
+.foot{margin-top:28px;font-size:14px}
+.foot a{color:#1E4D5C;text-decoration:none;font-weight:600;border-bottom:1px solid #BCD0D6;padding-bottom:2px}
+</style></head><body>
+<div class="top"><div class="brand">너와나의인계고리 <small>5병동</small></div><div class="sp"></div>
+<div class="who"><b>이민혜</b> 간호사 <span style="opacity:.65">· A팀</span></div><button class="btn-ghost">로그아웃</button></div>
+<div class="wrap">
+  <h1>내 근무 · 역할 · 우리 팀 환자</h1>
+  <div class="sub">2026년 9월 16일(수) ~ 9월 17일(목) · 오늘부터 다음 근무까지 표시됩니다</div>
+
+  <div class="card">
+    <div class="card-h today">
+      <span class="date">9월 16일</span><span class="dow">수요일 · 오늘</span>
+      <span class="tag t-e">E · 이브닝 14:00–22:00</span>
+      <span class="role">액팅</span><span class="role none">A팀</span>
+      <span class="sp"></span>
+      <span class="flag">결원 재배정 이력 있음</span>
+    </div>
+    <table>
+      <thead><tr><th style="width:150px">병상</th><th style="width:220px">입원 건</th><th>비고</th><th style="width:170px">인계 상태</th><th style="width:250px"></th></tr></thead>
+      <tbody>
+        <tr><td class="bed">501-1</td><td class="code">STAY-2026-0912-014</td><td>9/12 입원</td><td><span class="st st-conf">확인 완료</span></td><td class="act"><button class="btn sec">인계 보기</button></td></tr>
+        <tr><td class="bed">501-3</td><td class="code">STAY-2026-0914-021</td><td>9/14 입원</td><td><span class="st st-sent">확인 대기</span></td><td class="act"><button class="btn sec">인계 보기</button></td></tr>
+        <tr><td class="bed">502-2</td><td class="code">STAY-2026-0908-006</td><td>9/8 입원</td><td><span class="st st-none">인계 없음</span></td><td class="act"><span style="color:#9AAAB0;font-size:14px">작성은 팀 차지</span></td></tr>
+        <tr><td class="bed">503-1</td><td class="code">STAY-2026-0916-003</td><td>9/16 입원 · 신규</td><td><span class="st st-none">인계 없음</span></td><td class="act"><span style="color:#9AAAB0;font-size:14px">작성은 팀 차지</span></td></tr>
+      </tbody>
+    </table>
+    <div style="padding:14px 24px;font-size:14px;color:#5B6B70;background:#FAFCFC;border-top:1px solid #EDF2F4">액팅은 우리 팀 인계를 <b>열람</b>합니다. 인계 작성·확인은 이 근무의 <b>A팀 차지(인계 담당)</b>가 합니다.</div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">
+      <span class="date">9월 17일</span><span class="dow">목요일</span>
+      <span class="tag t-n">N · 나이트 22:00–08:00</span>
+      <span class="role">차지</span><span class="role none">A팀</span>
+      <span class="sp"></span>
+    </div>
+    <div class="empty">
+      <div class="ic">🗂</div>
+      <div class="ttl">인계 담당 입원 건이 아직 지정되지 않았습니다</div>
+      <div class="dsc">근무와 역할(차지)은 확정되었습니다. 우리 팀 환자는 입·퇴원으로 매일 바뀌므로, 인계 담당 입원 건은 수간호사가 지정하면 여기에 표시됩니다.</div>
+    </div>
+  </div>
+
+  <div class="foot"><a href="11_handover_history_nurse.html">내 인계 이력 보기</a></div>
+</div>
+</body></html>

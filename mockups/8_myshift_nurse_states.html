@@ -1,0 +1,81 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>내 근무 — 빈 상태 3종</title><style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{width:1440px;background:#fff;font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",Arial,sans-serif;color:#1E2B30;-webkit-font-smoothing:antialiased}
+.top{height:64px;background:#1E4D5C;display:flex;align-items:center;padding:0 40px;color:#fff}
+.brand{font-size:19px;font-weight:700;letter-spacing:-.4px}
+.brand small{font-weight:400;opacity:.65;margin-left:12px;font-size:14px;letter-spacing:0}
+.top .sp{flex:1}
+.who{font-size:15px;opacity:.9}
+.who b{font-weight:600}
+.btn-ghost{margin-left:20px;border:1px solid rgba(255,255,255,.45);background:none;color:#fff;font-size:14px;padding:7px 14px;border-radius:6px;cursor:pointer;font-family:inherit}
+.wrap{padding:36px 40px 60px}
+h1{font-size:28px;font-weight:700;letter-spacing:-.6px}
+.sub{margin-top:8px;font-size:15px;color:#5B6B70}
+.card{border:1px solid #DFE7EA;border-radius:10px;margin-top:20px;overflow:hidden;background:#fff}
+.card-h{padding:20px 24px;display:flex;align-items:center;gap:14px;border-bottom:1px solid #EDF2F4}
+.card-h.today{background:#F5F9FA}
+.date{font-size:19px;font-weight:700}
+.dow{font-size:15px;color:#5B6B70;margin-left:-6px}
+.tag{font-size:14px;font-weight:700;padding:6px 13px;border-radius:6px;letter-spacing:.3px}
+.t-d{background:#FFF3E0;color:#B35B00;border:1px solid #FFD9A8}
+.t-e{background:#EDE7F6;color:#5432A6;border:1px solid #D3C4EF}
+.t-n{background:#E3F2FD;color:#0D5AA7;border:1px solid #B9DBF7}
+.role{font-size:15px;font-weight:600;padding:6px 14px;border-radius:6px;background:#E8F5E9;color:#256B2C;border:1px solid #BEE3C2}
+.role.none{background:#F4F6F7;color:#7A8A90;border-color:#DFE7EA;font-weight:500}
+.flag{font-size:13px;color:#B35B00;background:#FFF6E8;border:1px solid #FFDCAE;padding:5px 11px;border-radius:6px}
+.sp{flex:1}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:13px;font-weight:600;color:#5B6B70;padding:13px 24px;background:#FAFCFC;border-bottom:1px solid #EDF2F4}
+td{padding:16px 24px;font-size:15px;border-bottom:1px solid #F2F6F7}
+tr:last-child td{border-bottom:none}
+.bed{font-weight:700;font-size:16px}
+.code{color:#5B6B70;font-size:14px;font-family:ui-monospace,Menlo,Consolas,monospace}
+.st{display:inline-block;font-size:13px;font-weight:600;padding:5px 11px;border-radius:5px}
+.st-none{background:#F4F6F7;color:#7A8A90}
+.st-draft{background:#FFF6E8;color:#B35B00}
+.st-sent{background:#FFEDEE;color:#B3261E}
+.st-conf{background:#E8F5E9;color:#256B2C}
+.act{text-align:right}
+.btn{font-size:14px;font-weight:600;padding:9px 16px;border-radius:7px;border:1px solid #1E4D5C;background:#1E4D5C;color:#fff;cursor:pointer;font-family:inherit}
+.btn.sec{background:#fff;color:#1E4D5C}
+.btn:disabled{background:#F2F6F7;border-color:#DFE7EA;color:#9AAAB0;cursor:default}
+.empty{padding:44px 24px;text-align:center}
+.empty .ic{font-size:30px}
+.empty .ttl{margin-top:12px;font-size:17px;font-weight:600;color:#3C4F56}
+.empty .dsc{margin-top:7px;font-size:14px;color:#7A8A90}
+.foot{margin-top:28px;font-size:14px}
+.foot a{color:#1E4D5C;text-decoration:none;font-weight:600;border-bottom:1px solid #BCD0D6;padding-bottom:2px}
+.lbl{margin:40px 0 -6px;font-size:14px;font-weight:700;color:#B35B00;letter-spacing:.3px}.lbl span{color:#7A8A90;font-weight:500;margin-left:10px}</style></head><body>
+<div class="top"><div class="brand">너와나의인계고리 <small>5병동</small></div><div class="sp"></div>
+<div class="who"><b>이민혜</b> 간호사</div><button class="btn-ghost">로그아웃</button></div>
+<div class="wrap">
+  <h1>내 근무 · 역할 · 우리 팀 환자 — 빈 상태 3종</h1>
+  <div class="sub">인계 담당이 없어도 근무·역할은 보인다 — 읽기 3단 분리(F-03)를 화면으로 증명하는 부분</div>
+
+  <div class="lbl">① 근무 없음 <span>shift_assignment 0건</span></div>
+  <div class="card"><div class="empty">
+    <div class="ic">📅</div><div class="ttl">예정된 근무가 없습니다</div>
+    <div class="dsc">근무표가 등록되면 여기에 표시됩니다.</div>
+  </div></div>
+
+  <div class="lbl">② 근무 있음 · 역할 없음 <span>shift_assignment 있음 · role_type_id = null</span></div>
+  <div class="card">
+    <div class="card-h"><span class="date">9월 18일</span><span class="dow">금요일</span>
+      <span class="tag t-d">D · 데이 07:00–15:00</span><span class="role none">역할 배정 대기</span><span class="sp"></span></div>
+    <div class="empty">
+      <div class="ic">🏷</div><div class="ttl">역할 배정 대기</div>
+      <div class="dsc">근무는 확정되었습니다. 차지·서브차지·액팅 역할은 수간호사가 배정하면 표시됩니다.</div>
+    </div>
+  </div>
+
+  <div class="lbl">③ 근무·역할(차지) 있음 · 인계 담당 없음 <span>handover_assignment 0건 → is_handover_owner 전부 false</span></div>
+  <div class="card">
+    <div class="card-h"><span class="date">9월 19일</span><span class="dow">토요일</span>
+      <span class="tag t-n">N · 나이트 22:00–08:00</span><span class="role">차지</span><span class="sp"></span></div>
+    <div class="empty">
+      <div class="ic">🗂</div><div class="ttl">인계 담당 입원 건이 아직 지정되지 않았습니다</div>
+      <div class="dsc">근무와 역할(차지)은 확정되었습니다. 우리 팀 환자는 입·퇴원으로 매일 바뀌므로, 인계 담당 입원 건은 수간호사가 지정하면 여기에 표시됩니다.</div>
+    </div>
+  </div>
+</div>
+</body></html>
