@@ -28,7 +28,8 @@ button{font-family:inherit}
 .side{width:240px;flex:0 0 240px;background:var(--surface);border-right:1px solid var(--line);position:sticky;top:0;height:100vh;display:flex;flex-direction:column;padding:22px 16px 18px}
 body.no-shell .side,body.no-shell .topbar{display:none}
 .main{flex:1;min-width:0;display:flex;flex-direction:column}
-.brand{display:flex;align-items:center;gap:10px;padding:4px 10px 18px;font-size:17px;font-weight:800;letter-spacing:-.4px;color:var(--text)}
+.brand{display:flex;align-items:center;gap:10px;padding:4px 10px 18px;font-size:17px;font-weight:800;letter-spacing:-.4px;color:var(--text);text-decoration:none;border-radius:var(--r-sm);transition:opacity var(--t)}
+.brand:hover{opacity:.75}
 .brand .logo{width:30px;height:30px;border-radius:9px;background:var(--primary);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:15px;font-weight:800}
 .brand small{display:block;font-size:11px;font-weight:500;color:var(--muted);letter-spacing:0;margin-top:1px}
 .nav-grp{font-size:11px;font-weight:700;color:var(--muted-2);letter-spacing:.06em;text-transform:uppercase;padding:14px 12px 6px}
@@ -228,7 +229,7 @@ input[type=checkbox]{accent-color:var(--primary);width:16px;height:16px}
 .ucard .order{position:absolute;top:10px;right:10px;width:22px;height:22px;border-radius:50%;background:var(--primary);color:#fff;font-size:12px;font-weight:800;display:inline-flex;align-items:center;justify-content:center}
 
 /* API 패널 — 우하단 알약 */
-.apilog{position:fixed;right:22px;bottom:18px;z-index:9;width:560px;display:flex;flex-direction:column;align-items:flex-end;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px}
+.apilog{position:fixed;right:22px;bottom:18px;z-index:9;width:640px;display:flex;flex-direction:column;align-items:flex-end;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px}
 .apilog .bar{display:flex;align-items:center;gap:10px;max-width:100%;padding:9px 14px;border-radius:999px;background:#1F2A30;color:#DDE6E9;cursor:pointer;box-shadow:0 8px 24px rgba(20,40,40,.25);border:2px solid transparent;transition:border-color var(--t)}
 .apilog .bar .lbl{font-weight:800;color:#7FE0D2}
 .apilog .bar .code{color:#fff;font-family:inherit;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -236,10 +237,11 @@ input[type=checkbox]{accent-color:var(--primary);width:16px;height:16px}
 .apilog.err .bar{border-color:#FF8A80;animation:shake 320ms ease}
 @keyframes shake{20%{transform:translateX(-4px)}40%{transform:translateX(4px)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)}}
 .apilog .s2{color:#7CD992}.apilog .s4{color:#FF8A80;font-weight:800}
-.apilog .body{display:none;width:100%;max-height:300px;overflow:auto;margin-bottom:8px;background:#1F2A30;color:#DDE6E9;border-radius:var(--r);padding:8px 16px;box-shadow:0 8px 24px rgba(20,40,40,.25);order:-1}
+.apilog .body{display:none;width:100%;max-height:420px;overflow:auto;margin-bottom:8px;background:#1F2A30;color:#DDE6E9;border-radius:var(--r);padding:8px 16px;box-shadow:0 8px 24px rgba(20,40,40,.25);order:-1}
 .apilog.open .body{display:block}
 .apilog .ent{padding:8px 0;border-bottom:1px solid #2C3B42;display:grid;grid-template-columns:44px 1fr;gap:8px}
-.apilog .ent pre{margin:3px 0 0;white-space:pre-wrap;color:#9FB3BA;font-size:11.5px;grid-column:2;word-break:break-all}
+.apilog .ent pre{margin:6px 0 0;white-space:pre;overflow-x:auto;color:#C9D6DB;font-size:11.5px;line-height:1.5;grid-column:2;tab-size:2}
+.apilog .ent pre b{color:#7FE0D2;font-weight:700}
 .apilog .ent .code{color:#fff;font-family:inherit;font-size:12px}
 .btn svg{width:16px;height:16px;flex:0 0 16px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 #err{scroll-margin-top:84px}

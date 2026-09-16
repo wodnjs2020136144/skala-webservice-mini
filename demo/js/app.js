@@ -72,7 +72,7 @@
     var side = document.getElementById('side'), top = document.getElementById('topbar');
     if (noShell) { side.innerHTML = ''; top.innerHTML = ''; return; }
     var nav = NAV[me.user_type].map(function (n) { return '<a href="#/' + n[0] + '" class="' + (r.name === n[0] || (r.name === 'reassign' && n[0] === 'board') || (r.name === 'handover' && n[0] === 'me') ? 'on' : '') + '">' + ICON[n[0]] + '<span>' + n[1] + '</span></a>'; }).join('');
-    side.innerHTML = '<div class="brand"><span class="logo">고</span><span>너와나의인계고리<small>5병동 · 시연 데모 · 가상 데이터</small></span></div>' +
+    side.innerHTML = '<a class="brand" href="' + (me.user_type === 'HEAD_NURSE' ? '#/dashboard' : '#/me') + '" title="내 첫 화면으로"><span>너와나의인계고리<small>5병동 · 시연 데모 · 가상 데이터</small></span></a>' +
       '<div class="nav-grp">' + (me.user_type === 'HEAD_NURSE' ? '수간호사 업무' : '간호사 업무') + '</div><nav class="nav">' + nav + '</nav><div class="sp"></div>' +
       '<div class="ucard-side"><div class="row"><span class="avatar ' + avatarCls(me) + '">' + h(initials(me)) + '</span><div><div class="nm">' + h(me.name) + '</div><div class="rl">' + (me.user_type === 'HEAD_NURSE' ? '수간호사 · 5병동' : '간호사 · ' + h(teamOf(me))) + '</div></div></div>' +
       '<button class="btn sec sm" id="switchUser">' + ICON.swap + ' 사용자 전환</button></div>';
@@ -94,10 +94,17 @@
     if (last) el.innerHTML = line(last);
     document.getElementById('apilogBody').innerHTML = logEntries.slice(0, 12).map(function (e) {
       return '<div class="ent"><span class="' + cls(e.status) + '">' + e.status + '</span><span class="code">' + e.method + ' ' + h(e.path) + ' <span style="opacity:.5">' + h(e.operationId) + '</span></span>' +
-        (e.body ? '<pre>→ ' + h(JSON.stringify(e.body)) + '</pre>' : '') + '<pre>← ' + h(JSON.stringify(e.response).slice(0, 600)) + '</pre></div>';
+        (e.body ? '<pre><b>요청</b>\n' + h(pretty(e.body, 40)) + '</pre>' : '') + '<pre><b>' + (e.status >= 400 ? '오류' : '응답') + '</b>\n' + h(pretty(e.response, 60)) + '</pre></div>';
     }).join('');
   }
   function cls(s) { return s >= 400 ? 's4' : 's2'; }
+  /* 읽기 쉬운 JSON: 2칸 들여쓰기 · 긴 배열은 앞 N줄만 보여주고 "… 외 k건" */
+  function pretty(obj, maxLines) {
+    var txt = JSON.stringify(obj, null, 2);
+    var lines = txt.split('\n');
+    if (lines.length > maxLines) txt = lines.slice(0, maxLines).join('\n') + '\n  … (' + (lines.length - maxLines) + '줄 더 — 전체는 콘솔 Api.invoke 결과)';
+    return txt;
+  }
   function line(e) { return '<span class="' + cls(e.status) + '">' + e.status + '</span> &nbsp;' + e.method + ' ' + h(e.path) + ' <span style="opacity:.5">· ' + h(e.operationId) + (e.status >= 400 ? ' · ' + h(e.response.code) : '') + '</span>'; }
 
   // ---- 시작 ----------------------------------------------------
