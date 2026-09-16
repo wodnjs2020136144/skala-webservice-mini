@@ -67,9 +67,10 @@
   function initials(u) { return u.name.slice(0, 1); }
   function avatarCls(u) { return u.user_type === 'HEAD_NURSE' ? 'h' : u.team_id === 2 ? 'b' : ''; }
   function renderTop(me, r) {
-    document.body.classList.toggle('no-shell', !me);
+    var noShell = !me || r.name === 'login'; // 사용자 전환 중(로그인 화면)에도 셸을 숨긴다
+    document.body.classList.toggle('no-shell', noShell);
     var side = document.getElementById('side'), top = document.getElementById('topbar');
-    if (!me) { side.innerHTML = ''; top.innerHTML = ''; return; }
+    if (noShell) { side.innerHTML = ''; top.innerHTML = ''; return; }
     var nav = NAV[me.user_type].map(function (n) { return '<a href="#/' + n[0] + '" class="' + (r.name === n[0] || (r.name === 'reassign' && n[0] === 'board') || (r.name === 'handover' && n[0] === 'me') ? 'on' : '') + '">' + ICON[n[0]] + '<span>' + n[1] + '</span></a>'; }).join('');
     side.innerHTML = '<div class="brand"><span class="logo">고</span><span>너와나의인계고리<small>5병동 · 시연 데모 · 가상 데이터</small></span></div>' +
       '<div class="nav-grp">' + (me.user_type === 'HEAD_NURSE' ? '수간호사 업무' : '간호사 업무') + '</div><nav class="nav">' + nav + '</nav><div class="sp"></div>' +

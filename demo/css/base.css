@@ -18,7 +18,7 @@
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{background:var(--bg)}
-body{width:1440px;min-height:100vh;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Malgun Gothic",Arial,sans-serif;color:var(--text);-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.5}
+body{min-width:1440px;min-height:100vh;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Malgun Gothic",Arial,sans-serif;color:var(--text);-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.5}
 a{color:var(--primary)}
 button{font-family:inherit}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
@@ -56,7 +56,7 @@ body.no-shell .side,body.no-shell .topbar{display:none}
 /* ---- 콘텐츠 ---- */
 #view{animation:fadein 200ms ease both}
 @keyframes fadein{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
-.wrap{padding:28px 36px 120px;max-width:1200px}
+.wrap{padding:28px 36px 120px;max-width:1400px}
 h1{font-size:24px;font-weight:800;letter-spacing:-.5px}
 .sub{margin-top:6px;font-size:14px;color:var(--muted);line-height:1.6}
 .crumb{font-size:13px;color:var(--muted);margin-bottom:8px}
@@ -215,10 +215,10 @@ input[type=checkbox]{accent-color:var(--primary);width:16px;height:16px}
 .login .left p{margin-top:16px;font-size:16px;color:#D6EFEA;line-height:1.7}
 .login .bar{width:56px;height:4px;background:#FFC46B;margin-top:30px;border-radius:2px}
 .login .left ul{margin-top:28px;list-style:none;font-size:14px;color:#BFE2DB;line-height:2.1}
-.login .right{flex:1;padding:52px 56px 60px}
+.login .right{flex:1;padding:52px 56px 60px;max-width:1500px}
 .login h2{font-size:22px;font-weight:800}
 .login .hint{margin-top:8px;font-size:13.5px;color:var(--muted);line-height:1.65}
-.ucards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:20px}
+.ucards{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;margin-top:20px}
 .ucard{position:relative;display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;cursor:pointer;background:var(--surface);text-align:left;box-shadow:var(--shadow);transition:transform var(--t),box-shadow var(--t),border-color var(--t)}
 .ucard:hover{transform:translateY(-1px);box-shadow:var(--shadow-h);border-color:#BFD9D4}
 .ucard .nm{font-size:15px;font-weight:800}
