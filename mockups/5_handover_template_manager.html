@@ -1,0 +1,48 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>병동 인계 항목 관리 — 너와나의인계고리</title>
+<link rel="stylesheet" href="_base.css">
+<style>
+.itm{display:grid;grid-template-columns:44px 1fr 120px 110px;gap:12px;align-items:center;padding:14px 24px;border-bottom:1px solid #F2F6F7}
+.itm:last-of-type{border-bottom:none}
+.ord{font-size:14px;color:#7A8A90;font-family:ui-monospace,Menlo,Consolas,monospace}
+.inp{height:42px;border:1px solid #DFE7EA;border-radius:8px;padding:0 14px;font-size:15px;font-family:inherit;background:#fff;width:100%}
+.src{font-size:12px;color:#9AAAB0;font-family:ui-monospace,Menlo,Consolas,monospace}
+</style></head><body>
+<div class="top"><div class="brand">너와나의인계고리 <small>5병동</small></div><div class="sp"></div>
+<div class="who"><b>김수진</b> 수간호사</div><button class="btn-ghost">로그아웃</button></div>
+<div class="wrap">
+  <div class="crumb">병동 대시보드 &rsaquo; <b>병동 인계 항목 관리</b></div>
+  <h1>병동 인계 항목 관리</h1>
+  <div class="sub">이 병동의 <b>모든 인계</b>가 쓰는 공통 항목입니다. <b>역할별로 갈리지 않습니다</b> — 인계는 차지가 받고, 액팅은 옆에서 같은 인계를 듣습니다.</div>
+
+  <div class="two"><div>
+    <div class="card">
+      <div class="card-h"><span class="date" style="font-size:17px">항목 목록</span>
+        <span class="sp"></span><span class="code">GET · PUT /wards/5/handover-template-items</span></div>
+      <div class="itm"><span class="ord">1</span><input class="inp" value="환자 · 현재 상태"><span class="req">필수</span><button class="btn sec">순서 ↑↓</button></div>
+      <div class="itm"><span class="ord">2</span><input class="inp" value="주요 사정 내용"><span class="req">필수</span><button class="btn sec">순서 ↑↓</button></div>
+      <div class="itm"><span class="ord">3</span><input class="inp" value="이번 근무 중 수행한 조치"><span class="req">필수</span><button class="btn sec">순서 ↑↓</button></div>
+      <div class="itm"><span class="ord">4</span><input class="inp" value="안전 고려사항 (낙상·억제대·알레르기 등)"><span class="req">필수</span><button class="btn sec">순서 ↑↓</button></div>
+      <div class="itm"><span class="ord">5</span><input class="inp" value="다음 근무자가 확인할 것"><span class="req">필수</span><button class="btn sec">순서 ↑↓</button></div>
+      <div class="itm"><span class="ord">6</span><input class="inp" value="배경 · 입원 경위"><span class="opt">선택</span><button class="btn sec">순서 ↑↓</button></div>
+      <div class="itm"><span class="ord">7</span><input class="inp" value="기타 특이사항"><span class="opt">선택</span><button class="btn sec">순서 ↑↓</button></div>
+    </div>
+
+    <div class="bar2"><button class="btn sec">+ 항목 추가</button></div>
+
+    <div class="warn"><b>필수</b>로 표시한 항목이 비어 있으면 인계를 <b>넘길 수 없습니다 (422)</b>.
+      <br>순서가 중복되면 저장이 <b>422</b> 로 거부됩니다.</div>
+
+    <div class="row-actions"><button class="btn sec">되돌리기</button><button class="btn">저장</button></div>
+  </div>
+
+  <div class="side"><h3>항목을 고치면 어떻게 되나</h3>
+    <div class="kv">이미 작성된 인계의 항목은 <b>바뀌지 않습니다</b><br>복사는 <b>인계 생성 시점에 1회</b>뿐입니다<br>작성 중(DRAFT)인 인계도 예외가 아닙니다</div>
+    <div class="kv" style="border-top:1px solid #E4EBED;padding-top:14px;margin-top:18px;color:#7A8A90;font-size:13px;line-height:1.7">
+      항목 구성은 <b style="color:#1E2B30">2014년 국내 인수인계 표준화 연구의 7개 범주</b>를 참고해<br>
+      <b style="color:#1E2B30">이번 서비스가 정한 템플릿 설계안</b>입니다.<br>
+      필수·선택 구분은 <b style="color:#1E2B30">연구 원문이 아닙니다.</b></div>
+    <div class="kv" style="border-top:1px solid #E4EBED;padding-top:14px;margin-top:18px">
+      쓰기 <b>해당 병동 수간호사만</b><br>조회 <b>같은 병동 간호사도 가능</b><br><span style="color:#7A8A90">그 외 403</span></div>
+  </div></div>
+</div>
+</body></html>

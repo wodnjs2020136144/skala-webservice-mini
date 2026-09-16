@@ -1,0 +1,49 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>내 인계 이력 — 너와나의인계고리</title>
+<link rel="stylesheet" href="_base.css">
+<style>
+.dir{display:inline-block;font-size:12px;font-weight:700;padding:3px 9px;border-radius:5px}
+.dir-s{background:#EDE7F6;color:#5432A6}
+.dir-r{background:#E3F2FD;color:#0D5AA7}
+.tabs{display:flex;gap:8px;margin-top:20px}
+.tab{font-size:14px;font-weight:600;padding:9px 16px;border-radius:7px;border:1px solid #DFE7EA;background:#fff;color:#5B6B70;cursor:pointer;font-family:inherit}
+.tab.on{background:#1E4D5C;border-color:#1E4D5C;color:#fff}
+</style></head><body>
+<div class="top"><div class="brand">너와나의인계고리 <small>5병동</small></div><div class="sp"></div>
+<div class="who"><b>이민혜</b> 간호사 <span style="opacity:.65">· A팀</span></div><button class="btn-ghost">로그아웃</button></div>
+<div class="wrap">
+  <div class="crumb">내 근무 · 역할 · 우리 팀 환자 &rsaquo; <b>내 인계 이력</b></div>
+  <h1>내 인계 이력</h1>
+  <div class="sub">내가 주고받은 인계만 보입니다 · <span class="code">GET /me/handovers?from=2026-09-10&amp;to=2026-09-16</span></div>
+
+  <div class="bar2">
+    <select class="sel"><option>2026-09-10 ~ 2026-09-16</option></select>
+    <span class="sp"></span>
+  </div>
+  <div class="tabs"><button class="tab on">전체</button><button class="tab">보낸 인계</button><button class="tab">받은 인계</button></div>
+
+  <div class="card">
+    <table>
+      <thead><tr><th style="width:110px">방향</th><th style="width:120px">병상</th><th style="width:230px">입원 건</th><th style="width:200px">근무</th><th style="width:150px">상태</th><th>확인 시각</th></tr></thead>
+      <tbody>
+        <tr><td><span class="dir dir-s">보냄</span></td><td class="bed">501-3</td><td class="code">STAY-2026-0914-021</td>
+            <td>9월 16일 <span class="tag t-e" style="font-size:12px;padding:3px 8px">E</span></td>
+            <td><span class="st st-conf">확인 완료</span></td><td>9/16 22:41</td></tr>
+        <tr><td><span class="dir dir-r">받음</span></td><td class="bed">501-1</td><td class="code">STAY-2026-0912-014</td>
+            <td>9월 16일 <span class="tag t-e" style="font-size:12px;padding:3px 8px">E</span></td>
+            <td><span class="st st-conf">확인 완료</span></td><td>9/16 14:20</td></tr>
+        <tr><td><span class="dir dir-r">받음</span></td><td class="bed">502-2</td><td class="code">STAY-2026-0908-006</td>
+            <td>9월 15일 <span class="tag t-d" style="font-size:12px;padding:3px 8px">D</span></td>
+            <td><span class="st st-none">대체됨 · SUPERSEDED</span></td><td>—</td></tr>
+        <tr><td><span class="dir dir-s">보냄</span></td><td class="bed">503-1</td><td class="code">STAY-2026-0913-032</td>
+            <td>9월 14일 <span class="tag t-n" style="font-size:12px;padding:3px 8px">N</span></td>
+            <td><span class="st st-conf">확인 완료</span></td><td>9/15 08:05</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="warn"><b>SUPERSEDED</b> 는 수신자가 결원되어 대체된 인계입니다. <b>읽기 전용</b>이고, 미확인 건수 집계에서 빠집니다.
+    후속 인계가 새 수신자에게 발행되어 있습니다.</div>
+
+  <div class="foot"><a href="8_myshift_nurse.html">내 근무 화면으로</a></div>
+</div>
+</body></html>

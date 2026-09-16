@@ -1,0 +1,51 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>변경 이력 — 너와나의인계고리</title>
+<link rel="stylesheet" href="_base.css">
+<style>
+.tl{margin-top:20px;border-left:2px solid #DFE7EA;padding-left:0}
+.ev{position:relative;padding:18px 0 18px 26px;border-bottom:1px solid #F2F6F7}
+.ev:last-child{border-bottom:none}
+.ev::before{content:"";position:absolute;left:-7px;top:24px;width:12px;height:12px;border-radius:50%;background:#1E4D5C}
+.ev.reg::before{background:#B3261E}
+.ev.conf::before{background:#256B2C}
+.ev .tm{font-size:13px;color:#7A8A90;font-family:ui-monospace,Menlo,Consolas,monospace}
+.ev .ti{margin-top:6px;font-size:16px;font-weight:700}
+.ev .ds{margin-top:6px;font-size:14px;color:#3C4F56;line-height:1.7}
+.ev .ct{display:inline-block;font-size:12px;font-weight:700;padding:3px 9px;border-radius:5px;background:#EEF4F6;color:#33535E;margin-left:8px;font-family:ui-monospace,Menlo,Consolas,monospace}
+</style></head><body>
+<div class="top"><div class="brand">너와나의인계고리 <small>5병동</small></div><div class="sp"></div>
+<div class="who"><b>김수진</b> 수간호사</div><button class="btn-ghost">로그아웃</button></div>
+<div class="wrap">
+  <div class="crumb">병동 대시보드 &rsaquo; <b>변경 이력</b></div>
+  <h1>변경 이력</h1>
+  <div class="sub">결원 재배정 이력입니다. <b>역할만 바뀐 경우는 포함되지 않습니다</b> — 이번 범위에서는 "결원 재배정 이력"으로만 말합니다.</div>
+
+  <div class="bar2">
+    <select class="sel"><option>2026-09-10 ~ 2026-09-17</option></select>
+    <span class="sp"></span>
+    <span class="code">GET /wards/5/reassignment-logs?from=2026-09-10&amp;to=2026-09-17</span>
+  </div>
+
+  <div class="card"><div style="padding:4px 24px">
+    <div class="tl">
+      <div class="ev conf"><div class="tm">2026-09-15 09:12</div>
+        <div class="ti">대체 완료로 확인<span class="ct">COVER_CONFIRMED</span></div>
+        <div class="ds">김수진 수간호사가 확인 · 대상: 박영숙 (9/15 E) · 사유 <b>당일 병가</b> (결원 사유 복사)</div></div>
+
+      <div class="ev"><div class="tm">2026-09-15 08:50</div>
+        <div class="ti">인계 담당 이관<span class="ct">HANDOVER_OWNER_TRANSFERRED</span></div>
+        <div class="ds">박영숙 → 정하늘 · 입원 건 <span class="code">STAY-2026-0908-006</span> 외 2건<br>
+          기존 인계는 <b>SUPERSEDED</b>, 후속 인계 발행됨</div></div>
+
+      <div class="ev"><div class="tm">2026-09-15 08:44</div>
+        <div class="ti">대체자 배정<span class="ct">SUBSTITUTE_ASSIGNED</span></div>
+        <div class="ds">정하늘 (A팀) 이 9/15 E 근무를 서기로 확정 · 사유 <b>당일 병가</b> (복사)</div></div>
+
+      <div class="ev reg"><div class="tm">2026-09-15 08:40</div>
+        <div class="ti">결원 등록<span class="ct">ABSENCE_REGISTERED</span></div>
+        <div class="ds">박영숙 (9/15 E · A팀 차지) · 사유 <b>당일 병가</b> — 사람이 사유를 쓰는 유일한 지점</div></div>
+    </div>
+  </div></div>
+
+  <div class="warn">사유는 <b>결원 등록에서 한 번만</b> 입력합니다. 나머지 세 로그는 그 값을 <b>서버가 복사</b>합니다 — 사유가 달라지면 한 결원 건의 이력을 이어서 읽을 수 없기 때문입니다.</div>
+</div>
+</body></html>

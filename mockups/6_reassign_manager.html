@@ -1,0 +1,63 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>결원 등록 · 재배정 — 너와나의인계고리</title>
+<link rel="stylesheet" href="_base.css">
+<style>
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:20px}
+.step{border:1px solid #DFE7EA;border-radius:10px;padding:18px 20px;background:#fff}
+.step.done{border-color:#BEE3C2;background:#F6FBF6}
+.step.now{border-color:#1E4D5C;box-shadow:0 0 0 2px rgba(30,77,92,.12)}
+.step .no{font-size:13px;font-weight:700;color:#5B6B70}
+.step .ti{margin-top:8px;font-size:16px;font-weight:700}
+.step .ds{margin-top:8px;font-size:13px;color:#7A8A90;line-height:1.6}
+.step .src{margin-top:10px;font-size:11px;color:#9AAAB0;font-family:ui-monospace,Menlo,Consolas,monospace;word-break:break-all}
+.step .btn{margin-top:14px;width:100%}
+.inp{height:42px;border:1px solid #DFE7EA;border-radius:8px;padding:0 14px;font-size:15px;font-family:inherit;background:#fff;width:100%}
+</style></head><body>
+<div class="top"><div class="brand">너와나의인계고리 <small>5병동</small></div><div class="sp"></div>
+<div class="who"><b>김수진</b> 수간호사</div><button class="btn-ghost">로그아웃</button></div>
+<div class="wrap">
+  <div class="crumb">병동 대시보드 &rsaquo; <b>결원 등록 · 재배정</b></div>
+  <h1>결원 등록 · 재배정</h1>
+  <div class="sub">한가람 간호사 · 9월 17일(목) D · 데이 · <b>B팀 차지</b> &nbsp;·&nbsp;
+    <span class="code">GET /shift-assignments/41/reassignment-context</span></div>
+
+  <div class="steps">
+    <div class="step done"><div class="no">① 완료</div><div class="ti">결원 등록</div>
+      <div class="ds">사유: 당일 병가<br>status → ABSENT</div>
+      <div class="src">POST /shift-assignments/41/absence</div>
+      <button class="btn sec" disabled>등록됨 08:10</button></div>
+
+    <div class="step now"><div class="no">② 진행 중</div><div class="ti">대체자 배정</div>
+      <div class="ds">같은 병동 · 같은 날 · 같은 근무조의 ACTIVE 근무자만 후보</div>
+      <div class="src">POST /shift-assignments/41/substitute</div>
+      <select class="sel" style="width:100%;margin-top:12px"><option>대체자 선택</option><option>최서연 (B팀 · 역할 미배정)</option><option>이민혜 (A팀 · 서브차지)</option></select>
+      <button class="btn">대체자 배정</button></div>
+
+    <div class="step"><div class="no">③ 대기</div><div class="ti">인계 담당 이관</div>
+      <div class="ds">기존 담당은 REPLACED 로 남기고 새 행을 만듭니다. 해당 인계는 SUPERSEDED 가 되고 <b>후속 인계가 같은 트랜잭션에서 발행</b>됩니다</div>
+      <div class="src">POST /shift-assignments/41/handover-transfer</div>
+      <button class="btn sec" disabled>대체자 배정 후 가능</button></div>
+
+    <div class="step"><div class="no">④ 대기</div><div class="ti">대체 완료로 확인</div>
+      <div class="ds">사람이 확인한 기록입니다. 자동 증명이 아닙니다</div>
+      <div class="src">POST /shift-assignments/41/coverage-confirmation</div>
+      <button class="btn sec" disabled>SUBSTITUTE_ASSIGNED 없음 · 422</button></div>
+  </div>
+
+  <div class="card">
+    <div class="card-h"><span class="date" style="font-size:17px">이 사람 이름으로 남은 인계 담당</span>
+      <span class="sp"></span><span class="flag">2건 — ④ 전에 확인</span></div>
+    <table>
+      <thead><tr><th style="width:150px">병상</th><th style="width:240px">입원 건</th><th>인계 상태</th><th style="width:170px"></th></tr></thead>
+      <tbody>
+        <tr><td class="bed">504-1</td><td class="code">STAY-2026-0901-011</td><td><span class="st st-sent">확인 대기</span></td><td class="act"><button class="btn sec">이관 대상</button></td></tr>
+        <tr><td class="bed">504-3</td><td class="code">STAY-2026-0910-044</td><td><span class="st st-none">인계 없음</span></td><td class="act"><button class="btn sec">이관 대상</button></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="warn">완료 확인 가드는 <b>대체 "근무"만</b> 봅니다. 결원자 이름으로 ACTIVE 인 인계 담당이 남아 있어도 ④ 는 통과합니다.
+    <br>그래서 위 목록을 보여주고 <b>사람이 판단</b>합니다 — 그 사이 퇴원처럼 이관하지 않는 것이 정상인 경우가 있습니다.</div>
+
+  <div class="danger">대상 인계가 <b>CONFIRMED</b> 면 이관이 <b>409</b> 로 거부됩니다. 확인까지 끝난 인계는 닫힌 고리이고, 그 뒤의 담당 변경은 정상 교대입니다.</div>
+</div>
+</body></html>

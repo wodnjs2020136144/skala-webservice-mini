@@ -1,0 +1,74 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>병동 대시보드 — 너와나의인계고리</title>
+<link rel="stylesheet" href="_base.css">
+<style>
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:20px}
+.tile{border:1px solid #DFE7EA;border-radius:10px;padding:20px 22px;background:#fff}
+.tile .lb{font-size:14px;color:#5B6B70}
+.tile .vl{margin-top:10px;font-size:32px;font-weight:700;letter-spacing:-1px}
+.tile .vl small{font-size:15px;font-weight:600;color:#5B6B70;margin-left:4px}
+.tile .sub2{margin-top:8px;font-size:13px;color:#7A8A90}
+.tile.alert{border-color:#F5C6C4;background:#FFFBFB}
+.tile.alert .vl{color:#B3261E}
+.nav{display:flex;gap:10px;margin-top:24px;flex-wrap:wrap}
+.src{margin-top:10px;font-size:12px;color:#9AAAB0;font-family:ui-monospace,Menlo,Consolas,monospace}
+</style></head><body>
+<div class="top"><div class="brand">너와나의인계고리 <small>5병동</small></div><div class="sp"></div>
+<div class="who"><b>김수진</b> 수간호사</div><button class="btn-ghost">로그아웃</button></div>
+<div class="wrap">
+  <h1>병동 대시보드</h1>
+  <div class="sub">2026년 9월 16일(수) 기준 · <span class="code">GET /wards/5/dashboard?date=2026-09-16</span></div>
+
+  <div class="tiles">
+    <div class="tile">
+      <div class="lb">오늘 근무자 수</div>
+      <div class="vl">11<small>명</small></div>
+      <div class="sub2">D 5 · E 4 · N 2</div>
+      <div class="src">shift_counts[]</div>
+    </div>
+    <div class="tile">
+      <div class="lb">역할별 배정 인원</div>
+      <div class="vl">3<small>역할</small></div>
+      <div class="sub2">차지 3 · 서브차지 2 · 액팅 5 · 미배정 1</div>
+      <div class="src">role_counts[]</div>
+    </div>
+    <div class="tile">
+      <div class="lb">미확인 인계 건수</div>
+      <div class="vl">4<small>건</small></div>
+      <div class="sub2">status = SENT · 날짜 무관</div>
+      <div class="src">unconfirmed_handover_count</div>
+    </div>
+    <div class="tile alert">
+      <div class="lb">결원 — 대체 전</div>
+      <div class="vl">1<small>건</small></div>
+      <div class="sub2">ABSENT 이고 covered_at 없음</div>
+      <div class="src">uncovered_absences[]</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h"><span class="date" style="font-size:17px">대체 전 결원</span><span class="sp"></span>
+      <span class="flag">재배정 필요</span></div>
+    <table>
+      <thead><tr><th style="width:150px">근무자</th><th style="width:120px">팀 · 역할</th><th style="width:220px">근무</th><th>결원 사유</th><th style="width:170px"></th></tr></thead>
+      <tbody>
+        <tr><td class="bed">한가람</td><td>B팀 · 차지</td><td>9월 17일(목) D · 데이</td><td>당일 병가</td>
+            <td class="act"><button class="btn">재배정</button></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="warn">결원은 <b>수간호사가 등록</b>합니다. 자동 감지가 아닙니다. 대체 완료도 <b>"대체 완료로 확인"</b> 버튼으로 사람이 확정합니다.</div>
+
+  <div class="nav">
+    <button class="btn sec">확정 근무 등록</button>
+    <button class="btn sec">역할 · 인계 담당 배정</button>
+    <button class="btn sec">병동 인계 항목 관리</button>
+    <button class="btn sec">결원 재배정</button>
+    <button class="btn sec">변경 이력</button>
+  </div>
+
+  <div class="foot" style="color:#7A8A90">
+    ⚠️ <b>인계 미작성 N건</b>은 넣지 않습니다 — EMR 연동이 없어 "작성해야 했는데 안 쓴 건"을 셀 수 없습니다.
+  </div>
+</div>
+</body></html>
