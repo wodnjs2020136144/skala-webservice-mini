@@ -61,7 +61,6 @@ function hr(s, x, y, w, color, pt) {
 function titleBar(s, sec, title, sub) {
   if (sec) s.addText(sec + "  " + (SEC_NAME[sec] || ""), { x: W - M - 3, y: 0.3, w: 3, h: 0.22, fontFace: F, fontSize: 9, color: MUTED, align: "right", margin: 0, isTextBox: true });
   s.addText(title, { x: M, y: 0.3, w: W - 2 * M - 3.1, h: 0.46, fontFace: F, fontSize: 22, bold: true, color: INK, valign: "middle", margin: 0, isTextBox: true });
-  hr(s, M, 0.82, 0.55, TEAL, 1.5);
   if (sub) s.addText(sub, { x: M, y: 0.86, w: W - 2 * M, h: 0.24, fontFace: F, fontSize: 11.5, color: INK2, valign: "middle", margin: 0, isTextBox: true });
 }
 function foot(s, t) {
