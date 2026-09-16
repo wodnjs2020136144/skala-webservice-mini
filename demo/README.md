@@ -18,7 +18,7 @@
 | `js/views.js` | 화면 11개. `Api.invoke()` 만 호출한다 |
 | `js/app.js` | 해시 라우터 · 사용자 전환 · API 로그 패널 |
 | `js/store.js` | 상태 · localStorage · 데모 시계 |
-| `css/base.css` | 스타일 한 파일 (리디자인 시 이 파일만 교체) |
+| `css/base.css` | 스타일 한 파일 — 09-16 리디자인(민트 바탕 · 틸 primary · 사이드바 · 파스텔 알약 · 160ms 전환 · `body.capture` 캡처 모드) |
 | `js/_smoke.node.js` | `node demo/js/_smoke.node.js` — 브라우저 없이 36개 시나리오 검사 |
 
 ## 시드 근무표 (5병동 · A팀 501~503호 · B팀 504~506호)
