@@ -1,0 +1,53 @@
+%% 핵심 관계도 — 인계 고리에 직접 관여하는 6테이블만. 전체 12테이블은 erd_full.png
+%% 컬럼은 PK/FK 와 "판정에 쓰는 것"만 넣는다. 전부 넣으면 다시 안 읽힌다.
+%% erDiagram 은 direction 을 지원하지 않는다 — 넣으면 빈 엔티티 2개로 파싱된다(27라운드 확인).
+erDiagram
+    shift_assignment ||--o{ handover_assignment : "그 근무에서 맡을 입원 건을 지정"
+    inpatient_stay   ||--o{ handover_assignment : "입원 건마다 담당 1명"
+    handover_assignment ||--o{ handover : "보낸다 (from)"
+    handover_assignment ||--o{ handover : "받는다 (to)"
+    handover ||--|{ handover_item : "항목은 템플릿 복사본"
+    handover ||--o| handover_receipt : "받았다는 기록"
+
+    shift_assignment {
+        int id PK
+        int user_id FK "누가"
+        date work_date "언제"
+        enum shift_code "D / E / N"
+        int role_type_id FK "차지 · 서브차지 · 액팅"
+        enum status "ACTIVE / ABSENT (결원)"
+    }
+    inpatient_stay {
+        int id PK
+        int team_id FK "A팀 / B팀 이 공동 담당"
+        string bed_no "병상번호"
+        string patient_ref_code "외부 참조 코드 (환자 마스터 없음)"
+        enum status "ACTIVE / CLOSED (퇴원)"
+    }
+    handover_assignment {
+        int id PK
+        int shift_assignment_id FK
+        int inpatient_stay_id FK
+        enum status "ACTIVE / REPLACED (이관됨)"
+    }
+    handover {
+        int id PK
+        int from_handover_assignment_id FK "쓴 사람"
+        int to_handover_assignment_id FK "받을 사람 (서버가 고른다)"
+        enum status "DRAFT / SENT / CONFIRMED / SUPERSEDED"
+        ts sent_at "넘긴 시각"
+        int superseded_by_handover_id FK "대체됐다면 후속 인계"
+    }
+    handover_item {
+        int id PK
+        int handover_id FK
+        string label "항목 이름 (복사 시점 고정)"
+        bool is_required "비면 넘길 수 없다"
+    }
+    handover_receipt {
+        int id PK
+        int handover_id FK
+        ts received_at "열어본 시각"
+        text receiver_summary "받은 사람이 자기 말로 쓴 요약"
+        ts confirmed_at "확인 처리한 시각"
+    }

@@ -8,7 +8,10 @@ Store.load();
 var seen = {};
 Api.onLog(e => { if (e.status < 300 && !seen[e.operationId]) seen[e.operationId] = e.response; });
 var I = Api.invoke, as = u => Store.setUser(u);
-function t(fn) { try { fn(); } catch (e) { } }
+// 27라운드 코덱스 지적: 실패를 조용히 삼키면 검사에서 그 오퍼레이션이 통째로 빠진다.
+// 삼키되 무엇이 실패했는지는 남긴다 — 순서상 실패가 정상인 호출도 있어서 중단하지는 않는다.
+var failed = [];
+function t(fn) { try { fn(); } catch (e) { failed.push((e && e.code) || (e && e.message) || 'ERR'); } }
 as('H001');
 t(() => I('getWardDashboard', { wardId: 5 }));
 t(() => I('listWardHandovers', { wardId: 5 }));
@@ -37,4 +40,5 @@ as('N004'); // 정하늘 N 차지
 t(() => I('createHandoverReceipt', { handoverId: draft.id }));
 t(() => I('updateReceiverSummary', { handoverId: draft.id, body: { receiver_summary: '요약' } }));
 t(() => I('confirmHandoverReceipt', { handoverId: draft.id }));
+if (failed.length) console.error('  (호출 실패 ' + failed.length + '건: ' + failed.join(', ') + ')');
 console.log(JSON.stringify(seen, null, 1));

@@ -6,7 +6,12 @@
 25라운드(R137~R144)에서 화면이 쓰는 필드가 OAS 에 없던 것이 8건 더 나왔다.
 "화면이 요청에 넣는 식별자는 어느 조회 API 의 응답 필드여야 한다" 는 규칙의 자동 검사다.
 `_` 로 시작하는 데모 전용 필드는 무시한다."""
-import json, io, os, sys, yaml
+import json, io, os, sys
+try:
+    import yaml
+except ImportError:                                   # 27라운드 코덱스 지적
+    sys.exit('PyYAML 이 필요하다:  python3 -m pip install pyyaml\n'
+             '(이 스크립트는 OAS 를 파싱한다. 의존성은 이 한 줄뿐이다)')
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OAS = os.path.join(ROOT, 'deliverables/10반_황재원_너와나의인계고리-API.yml')
@@ -62,6 +67,11 @@ for pth, item in spec['paths'].items():
                 op_schema[op['operationId']] = r['content']['application/json']['schema']
                 break
 
+# 27라운드 코덱스 지적: 잡히지 않은 오퍼레이션이 있으면 조용히 빠지고 "차집합 0" 이 찍혔다.
+# 양쪽 집합을 비교해서, **캡처되지 않은 OAS 오퍼레이션도 실패**로 센다.
+uncaptured = sorted(set(op_schema) - set(bodies))
+extra = sorted(set(bodies) - set(op_schema))
+
 missing_total = []
 for opid in sorted(bodies):
     if opid not in op_schema:
@@ -71,8 +81,20 @@ for opid in sorted(bodies):
     missing_total += [x for x in dict.fromkeys(m)]
 
 print('대조한 오퍼레이션', len(bodies), '/ OAS', len(op_schema))
+fail = False
+if uncaptured:
+    fail = True
+    print('\n응답을 캡처하지 못한 OAS 오퍼레이션', len(uncaptured), '건 — 검사에서 빠졌다:')
+    for x in uncaptured: print('  -', x)
+    print('  (tools/oas_capture.js 가 이 오퍼레이션을 성공적으로 호출하는지 확인할 것)')
+if extra:
+    fail = True
+    print('\nOAS 에 없는 오퍼레이션을 데모가 갖고 있다', len(extra), '건:')
+    for x in extra: print('  -', x)
 if missing_total:
+    fail = True
     print('\n선언되지 않은 응답 필드', len(missing_total), '건:')
     for x in missing_total: print('  -', x)
+if fail:
     sys.exit(1)
-print('차집합 0 — 데모가 돌려주는 모든 필드가 OAS 에 선언돼 있다')
+print('차집합 0 — OAS 오퍼레이션', len(op_schema), '개를 전부 호출했고, 데모가 돌려주는 모든 필드가 OAS 에 선언돼 있다')
