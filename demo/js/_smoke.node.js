@@ -36,7 +36,13 @@ err('SENT 후 수정 409', 409, () => I('updateHandoverItems', { handoverId: dra
 err('남의 담당 행으로 작성 403', 403, () => I('createHandover', { body: { inpatient_stay_id: 8, from_handover_assignment_id: 3 } }));
 as('N001');
 err('퇴원(CLOSED) 건 신규 인계 409', 409, () => I('createHandover', { body: { inpatient_stay_id: 8, from_handover_assignment_id: 3 } }));
-err('다음 담당 없음 422 (박지우 09-17 D · 담당 없음 → 먼저 담당 지정)', 404, () => I('createHandover', { body: { inpatient_stay_id: 4, from_handover_assignment_id: 999 } }));
+err('없는 담당 행 404', 404, () => I('createHandover', { body: { inpatient_stay_id: 4, from_handover_assignment_id: 999 } }));
+as('N004'); // 정하늘 09-16 N 차지 — 502-2 의 다음 근무(09-17 D 박지우)에는 담당이 없다 → 422 (서버 계산 ⑥)
+var ha221_3 = Store.db.handover_assignment.filter(a => a.shift_assignment_id === 221 && a.inpatient_stay_id === 3 && a.status === 'ACTIVE')[0].id;
+err('다음 담당 없음 422 (⑥)', 422, () => I('createHandover', { body: { inpatient_stay_id: 3, from_handover_assignment_id: ha221_3 } }));
+as('H001');
+err('요청 안 근무 중복 409 (R126)', 409, () => I('createShiftAssignments', { wardId: 5, body: { items: [{ user_id: 'N009', work_date: '2026-09-18', shift_code: 'D' }, { user_id: 'N009', work_date: '2026-09-18', shift_code: 'D' }] } }));
+err('요청 안 담당 중복 409 (R128)', 409, () => I('assignHandoverOwnership', { shiftAssignmentId: 231, body: { inpatient_stay_ids: [4, 4] } }));
 as('N003');
 
 console.log('# 이민혜 (E 액팅) — 열람만');
@@ -55,6 +61,9 @@ ok('요약 저장', () => I('updateReceiverSummary', { handoverId: draft, body: 
 ok('확인 처리', () => I('confirmHandoverReceipt', { handoverId: draft }));
 err('재확인 409', 409, () => I('confirmHandoverReceipt', { handoverId: draft }));
 ok('내 이력', () => I('listMyHandovers', {}));
+as('N003'); var dr = ok('한서윤 502-2 DRAFT 생성 (⑥ 다음 담당 = 정하늘)', () => I('createHandover', { body: { inpatient_stay_id: 3, from_handover_assignment_id: Store.db.handover_assignment.filter(a => a.shift_assignment_id === 211 && a.inpatient_stay_id === 3)[0].id } }));
+as('N004'); n++; var recvHist = I('listMyHandovers', { direction: 'received' }).items.some(x => x.handover_id === dr.handover_id); if (recvHist) { fails++; console.log('  FAIL 수신 측 이력에 DRAFT 포함 (R131)'); } else console.log('  ok  수신 측 이력에 DRAFT 없음 (R131)');
+n++; var st3 = I('getMyShifts', {}).shifts[0].team_stays.filter(x => x.inpatient_stay_id === 3)[0]; if (st3.handover_status === 'DRAFT') console.log('  ok  화면 8 handover_status=DRAFT (링크는 UI 가 숨김 · R130)'); else { fails++; console.log('  FAIL DRAFT 상태 기대, 실제', st3.handover_status); }
 
 console.log('# 수간호사 — 한가람 결원 4단계 (222)');
 as('H001');
@@ -63,6 +72,9 @@ console.log('     후보', cx.candidates.map(c => c.user_name), '잔여', cx.pen
 err('② 전 ④ → 422', 422, () => I('confirmCoverage', { shiftAssignmentId: 222 }));
 err('① 재등록 409', 409, () => I('registerAbsence', { shiftAssignmentId: 222, body: { change_reason: 'x' } }));
 ok('② 대체자 최서연(223)', () => I('assignSubstitute', { shiftAssignmentId: 222, body: { to_shift_assignment_id: 223 } }));
+err('③ 중복 stay 422 (R127)', 422, () => I('transferHandoverOwnership', { shiftAssignmentId: 222, body: { to_shift_assignment_id: 223, inpatient_stay_ids: [5, 5] } }));
+var absN = ok('ABSENT 대상 만들기(서지호 09-16 N 등록 → 결원)', () => { var r = I('createShiftAssignments', { wardId: 5, body: { items: [{ user_id: 'N010', work_date: '2026-09-16', shift_code: 'N' }] } }); I('registerAbsence', { shiftAssignmentId: r.items[0].shift_assignment_id, body: { change_reason: '테스트' } }); return r.items[0].shift_assignment_id; });
+err('③ ABSENT 대상 422 (R129)', 422, () => { try { I('transferHandoverOwnership', { shiftAssignmentId: 222, body: { to_shift_assignment_id: absN, inpatient_stay_ids: [5] } }); } catch (e) { if (e.code !== 'TARGET_NOT_ACTIVE') throw new Error('기대 TARGET_NOT_ACTIVE, 실제 ' + e.code); throw e; } });
 var tr = ok('③ 이관 504-1·504-3', () => I('transferHandoverOwnership', { shiftAssignmentId: 222, body: { to_shift_assignment_id: 223, inpatient_stay_ids: [5, 6] } }));
 console.log('     ', JSON.stringify(tr.transferred));
 ok('④ 대체 완료', () => I('confirmCoverage', { shiftAssignmentId: 222 }));

@@ -122,8 +122,12 @@
     requireWard(p.wardId); requireHeadNurse(ctx, p.wardId);
     var items = (p.body && p.body.items) || [];
     if (!items.length) throw new ApiError(422, 'ITEMS_REQUIRED', '등록할 근무가 없습니다');
+    var seenKey = {};
     items.forEach(function (it) {
       if (!one('users', it.user_id)) throw new ApiError(404, 'USER_NOT_FOUND', '근무자가 없습니다: ' + it.user_id);
+      var key = it.user_id + '|' + it.work_date + '|' + it.shift_code; // 21라운드 R126: 요청 안 중복도 같은 unique 위반이다
+      if (seenKey[key]) throw new ApiError(409, 'SHIFT_DUPLICATE', userName(it.user_id) + ' 이 요청 안에 두 번 있습니다 (' + it.work_date + ' ' + it.shift_code + ')');
+      seenKey[key] = 1;
       if (!ORDER.hasOwnProperty(it.shift_code) || !it.work_date) throw new ApiError(422, 'INVALID', '날짜·근무조가 올바르지 않습니다');
       // T6 F-01 저장 · 409 같은 사람·같은 날·같은 근무조 중복 (unique)
       if (where('shift_assignment', function (s) { return s.user_id === it.user_id && s.work_date === it.work_date && s.shift_code === it.shift_code; }).length)
@@ -166,6 +170,7 @@
     var s = requireSa(p.shiftAssignmentId); requireHeadNurse(ctx, s.ward_id);
     var ids = (p.body && p.body.inpatient_stay_ids) || [];
     if (!ids.length) throw new ApiError(422, 'STAYS_REQUIRED', '입원 건을 선택하세요');
+    if (new Set(ids).size !== ids.length) throw new ApiError(409, 'ALREADY_ASSIGNED', '같은 입원 건이 요청 안에 두 번 있습니다'); // R128
     ids.forEach(function (id) {
       var st = one('inpatient_stay', id); if (!st) throw new ApiError(404, 'STAY_NOT_FOUND', '입원 건이 없습니다');
       if (st.ward_id !== s.ward_id) throw new ApiError(422, 'WARD_MISMATCH', '다른 병동의 입원 건입니다'); // DBML handover_assignment 제약
@@ -231,7 +236,7 @@
     if (s.status === 'ABSENT') throw new ApiError(409, 'ALREADY_ABSENT', '이미 결원으로 등록된 근무입니다'); // T6 F-05 ① 409
     s.status = 'ABSENT';
     addLog('ABSENCE_REGISTERED', s.id, null, null, null, me.id, reason);
-    return { status: 200, body: { shift_assignment_id: s.id, status: s.status }, mutated: true };
+    return { status: 201, body: { shift_assignment_id: s.id, status: s.status }, mutated: true };
   } };
   OPS.assignSubstitute = { method: 'POST', path: '/shift-assignments/{shiftAssignmentId}/substitute', fn: function (ctx, p) {
     var s = requireSa(p.shiftAssignmentId); var me = requireHeadNurse(ctx, s.ward_id);
@@ -255,7 +260,7 @@
     if (target.ward_id !== s.ward_id || target.work_date !== s.work_date || target.shift_code !== s.shift_code) throw new ApiError(422, 'SHIFT_MISMATCH', '같은 병동·같은 날·같은 근무조여야 합니다');
     if (target.status !== 'ACTIVE') throw new ApiError(409, 'SUBSTITUTE_ABSENT', '대체자도 그 근무에 결원(ABSENT)입니다'); // T6 F-05 ② 409
     addLog('SUBSTITUTE_ASSIGNED', s.id, target.id, null, null, me.id, reason);
-    return { status: 200, body: { to_shift_assignment_id: target.id, user_name: saUser(target).name }, mutated: true };
+    return { status: 201, body: { to_shift_assignment_id: target.id, user_name: saUser(target).name }, mutated: true };
   } };
   OPS.transferHandoverOwnership = { method: 'POST', path: '/shift-assignments/{shiftAssignmentId}/handover-transfer', fn: function (ctx, p) {
     var s = requireSa(p.shiftAssignmentId); var me = requireHeadNurse(ctx, s.ward_id);
@@ -265,6 +270,8 @@
     if (!ids.length) throw new ApiError(422, 'STAYS_REQUIRED', '이관할 입원 건을 선택하세요');
     if (target.id === s.id) throw new ApiError(422, 'SELF_TRANSFER', '같은 근무로 이관할 수 없습니다');
     if (target.ward_id !== s.ward_id || target.work_date !== s.work_date || target.shift_code !== s.shift_code) throw new ApiError(422, 'SHIFT_MISMATCH', '같은 병동·같은 날·같은 근무조여야 합니다');
+    if (target.status !== 'ACTIVE') throw new ApiError(422, 'TARGET_NOT_ACTIVE', '이관 대상 근무가 ACTIVE 가 아닙니다 (불변 규칙 8)'); // R129
+    if (new Set(ids).size !== ids.length) throw new ApiError(422, 'DUPLICATE_STAY', '같은 입원 건이 요청 안에 두 번 있습니다 — SUPERSEDED 고리가 깨진다'); // R127
     // 검증을 먼저 전부 끝낸다 — 한 트랜잭션
     var plan = ids.map(function (stayId) {
       var fromHa = haOf(s.id, stayId);
@@ -299,7 +306,7 @@
     var reason = absenceReason(s.id, true);
     s.covered_at = now();
     addLog('COVER_CONFIRMED', s.id, null, null, null, me.id, reason);
-    return { status: 200, body: { shift_assignment_id: s.id, status: s.status, covered_at: s.covered_at }, mutated: true };
+    return { status: 201, body: { shift_assignment_id: s.id, status: s.status, covered_at: s.covered_at }, mutated: true };
   } };
   function addLog(type, from, to, fromHa, toHa, by, reason) {
     db().reassignment_log.push({ id: global.Store.nextId('reassignment_log'), change_type: type, from_shift_assignment_id: from, to_shift_assignment_id: to, from_handover_assignment_id: fromHa, to_handover_assignment_id: toHa, changed_by_user_id: by, change_reason: reason, changed_at: now() });
@@ -352,6 +359,7 @@
     db().handover.forEach(function (h) {
       var dir = myHa[h.from_handover_assignment_id] ? 'sent' : myHa[h.to_handover_assignment_id] ? 'received' : null;
       if (!dir) return; if (p.direction && p.direction !== dir) return;
+      if (dir === 'received' && h.status === 'DRAFT') return; // R131: DRAFT 는 작성자만 본다(T6) — 수신 측 이력에 넣지 않는다
       var s = myHa[dir === 'sent' ? h.from_handover_assignment_id : h.to_handover_assignment_id];
       if ((p.from && s.work_date < p.from) || (p.to && s.work_date > p.to)) return;
       var st = one('inpatient_stay', h.inpatient_stay_id), rc = receiptOf(h.id);
@@ -434,7 +442,7 @@
     var rc = receiptOf(h.id);
     if (!rc) { rc = { id: global.Store.nextId('handover_receipt'), handover_id: h.id, received_at: now(), receiver_summary: null, confirmed_at: null }; db().handover_receipt.push(rc); }
     else if (!rc.received_at) rc.received_at = now();
-    return { status: 200, body: { handover_id: h.id, received_at: rc.received_at }, mutated: true };
+    return { status: 201, body: { handover_id: h.id, received_at: rc.received_at }, mutated: true };
   } };
   OPS.updateReceiverSummary = { method: 'PATCH', path: '/handovers/{handoverId}/receipt', fn: function (ctx, p) {
     var h = requireHandover(p.handoverId); requireReceiver(ctx, h); requireSent(h);
@@ -450,7 +458,7 @@
     var rc = receiptOf(h.id);
     if (!rc || !(rc.receiver_summary && rc.receiver_summary.trim())) throw new ApiError(422, 'SUMMARY_REQUIRED', '요약을 입력해야 확인 처리를 할 수 있습니다 — 읽은 것만으로는 확인이 아닙니다');
     rc.confirmed_at = now(); h.status = 'CONFIRMED';
-    return { status: 200, body: { handover_id: h.id, status: h.status, confirmed_at: rc.confirmed_at, receiver_summary: rc.receiver_summary }, mutated: true };
+    return { status: 201, body: { handover_id: h.id, status: h.status, confirmed_at: rc.confirmed_at, receiver_summary: rc.receiver_summary }, mutated: true };
   } };
 
   // ---- 대시보드 ------------------------------------------------

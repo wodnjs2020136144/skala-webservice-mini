@@ -266,7 +266,8 @@
           var acts = [], note = A().dShort(t.admitted_at) + ' 입원' + (t.admitted_at.slice(0, 10) === today ? ' · 신규' : '');
           // 화면 8 버튼 판정 (T6 서버 계산 ①-c) — 받을 것과 보낼 것은 별개 행위라 둘 다 가능하면 둘 다 보여준다
           if (t.handover_status === 'SENT' && t.incoming_to_me) acts.push('<a class="btn" href="#/handover/' + t.incoming_handover_id + '/receive">인계 확인</a>');
-          else if (t.incoming_handover_id) acts.push('<a class="btn sec" href="#/handover/' + t.incoming_handover_id + '/receive">받은 인계 보기</a>');
+          else if (t.incoming_handover_id && t.handover_status !== 'DRAFT') acts.push('<a class="btn sec" href="#/handover/' + t.incoming_handover_id + '/receive">받은 인계 보기</a>');
+          else if (t.handover_status === 'DRAFT') acts.push('<span class="muted">앞 근무가 작성 중 · 전달되면 확인</span>'); // R130: DRAFT 는 작성자만 본다
           if (t.is_handover_owner && !t.outgoing_handover_id) acts.push('<button class="btn' + (acts.length ? ' sec' : '') + '" data-act="create" data-stay="' + t.inpatient_stay_id + '" data-ha="' + t.handover_assignment_id + '">인계 작성</button>');
           else if (t.is_handover_owner && t.outgoing_status === 'DRAFT') acts.push('<a class="btn" href="#/handover/' + t.outgoing_handover_id + '/write">작성 계속 · DRAFT</a>');
           else if (t.outgoing_handover_id) acts.push('<a class="btn sec" href="#/handover/' + t.outgoing_handover_id + '/write">보낸 인계 보기</a>');
