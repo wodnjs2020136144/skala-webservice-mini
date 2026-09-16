@@ -134,17 +134,20 @@
       return '<tr><td class="bed">' + h(r.user_name) + '</td><td>' + roleCell + '</td><td>' + h(r.team_name || '—') + '</td><td>' + chips + '</td><td class="act">' + act + '</td></tr>';
     }).join('') || '<tr><td colspan="5" style="padding:0"><div class="empty"><div class="ttl">이 근무조에 등록된 근무가 없습니다</div><a class="next" href="#/shifts">다음 할 일 — 확정 근무 등록에서 먼저 등록합니다</a></div></td></tr>';
     return {
-      html: '<div class="wrap">' + crumb('병동 대시보드', '#/dashboard', '역할 · 인계 담당 배정') + '<h1>역할 · 인계 담당 배정</h1><div class="sub">저장하면 간호사 화면에 즉시 반영됩니다. 별도 게시 단계가 없습니다.</div><div id="err"></div>' +
+      html: '<div class="wrap">' + crumb('병동 대시보드', '#/dashboard', '역할 · 인계 담당 배정') + '<h1>역할 · 인계 담당 배정</h1><div class="sub">고르는 즉시 저장되어 간호사 화면에 반영됩니다. 별도 게시 단계가 없습니다.</div><div id="err"></div>' +
         '<div class="bar2"><select class="sel" id="bDate">' + dateOpts(st.date) + '</select><select class="sel" id="bShift">' + shiftOpts(st.shift) + '</select><span class="sp"></span><span style="font-size:14px;color:#5B6B70">역할별 배정 인원 &nbsp;<b style="color:#1E2B30">' + (Object.keys(counts).map(function (k) { return k + ' ' + counts[k]; }).join(' · ') || '—') + '</b></span></div>' +
         '<div class="card"><table><thead><tr><th style="width:150px">근무자</th><th style="width:190px">역할</th><th style="width:90px">팀</th><th>인계 담당 입원 건 (병상) — 팀 차지</th><th style="width:150px"></th></tr></thead><tbody>' + rows + '</tbody></table>' +
         '<div style="padding:14px 24px;font-size:14px;color:#5B6B70;background:#FAFCFC;border-top:1px solid #EDF2F4">팀 환자는 팀이 공동으로 봅니다. 여기서 지정하는 것은 입원 건별 <b>인계 담당(작성·수신할 차지)</b>이며, 기본값은 그 근무의 팀 차지입니다. 역할·팀은 DB·API 가 강제하지 않습니다 — 수간호사의 지정으로 기록합니다.</div></div>' +
         (unassigned.length ? '<div class="warn">' + h(unassigned.join(' · ')) + ' 간호사의 <b>역할이 배정되지 않았습니다.</b> 역할 없이 저장하면 해당 간호사 화면에 "역할 배정 대기"로 표시됩니다.</div>' : '') +
-        '<div class="row-actions"><button class="btn sec" data-act="revert">되돌리기</button><button class="btn" data-act="save">저장 · 즉시 반영</button></div>' +
+        '<div class="ok" style="margin-top:14px">역할 선택과 인계 담당 지정은 <b>고르는 즉시 저장·반영</b>됩니다. 별도 저장 버튼이 없습니다 (게시 단계 없음).</div>' +
         '<div class="src" style="margin-top:12px">GET /wards/5/assignment-board?date=' + st.date + '&shift_code=' + st.shift + ' · PATCH /shift-assignments/{id} · POST /shift-assignments/{id}/handover-assignments</div></div>',
       bind: function (root) {
         sel(root, '#bDate').onchange = function (e) { st.date = e.target.value; st.open = null; st.changed = {}; A().render(); };
         sel(root, '#bShift').onchange = function (e) { st.shift = e.target.value; st.open = null; st.changed = {}; A().render(); };
-        all(root, '[data-role]').forEach(function (s) { s.onchange = function () { st.changed[s.dataset.role] = s.value ? +s.value : null; }; });
+        all(root, '[data-role]').forEach(function (s) { s.onchange = function () { // 역할 선택 즉시 반영 (T5-b 3번: 저장 즉시 공개 · 별도 게시 단계 없음)
+          try { var r = I('updateShiftAssignmentRole', { shiftAssignmentId: +s.dataset.role, body: { role_type_id: s.value ? +s.value : null } }); A().render(); ok(sel(document, '#view'), '<b>역할이 즉시 반영되었습니다.</b> ' + h(r.role_name || '역할 없음') + ' — 간호사 화면(내 근무)에 바로 보입니다.'); }
+          catch (e) { showErr(root, e); }
+        }; });
         onAct(root, {
           open: function (el) { st.open = +el.dataset.sa; A().render(); },
           close: function () { st.open = null; A().render(); },
@@ -152,12 +155,7 @@
             var ids = all(root, '[data-stay]:checked').map(function (c) { return +c.dataset.stay; });
             I('assignHandoverOwnership', { shiftAssignmentId: +el.dataset.sa, body: { inpatient_stay_ids: ids } }); st.open = null; A().render();
           },
-          revert: function () { st.changed = {}; A().render(); },
-          save: function () {
-            var ks = Object.keys(st.changed); if (!ks.length) { ok(root, '바뀐 역할이 없습니다. 인계 담당 지정은 행마다 즉시 반영됩니다.'); return; }
-            ks.forEach(function (k) { I('updateShiftAssignmentRole', { shiftAssignmentId: +k, body: { role_type_id: st.changed[k] } }); });
-            st.changed = {}; A().render(); ok(sel(document, '#view'), '<b>역할 ' + ks.length + '건 저장 · 즉시 반영되었습니다.</b> 간호사 화면(내 근무)에 바로 보입니다.');
-          }
+          revert: function () { A().render(); }
         });
       }
     };
@@ -206,7 +204,8 @@
       : '<div class="step' + (isAbsent ? ' now' : '') + '"><div class="no">② ' + (isAbsent ? '진행 중' : '대기') + '</div><div class="ti">대체자 배정</div><div class="ds">같은 병동 · 같은 날 · 같은 근무조의 ACTIVE 근무자만 후보. 없던 사람이면 근무를 새로 만듭니다</div><div class="src">POST /shift-assignments/' + id + '/substitute</div>' +
         '<select class="sel" id="cand"><option value="">대체자 선택</option>' + c.candidates.map(function (x) { return '<option value="sa:' + x.shift_assignment_id + '">' + h(x.user_name) + ' (' + h(x.team_name || '—') + ' · ' + h(x.role_name || '역할 미배정') + ')</option>'; }).join('') +
         S().db.users.filter(function (u) { return u.user_type === 'NURSE' && u.id !== S().db.shift_assignment.filter(function (s) { return s.id === id; })[0].user_id && !c.candidates.some(function (x) { return x.user_name === u.name; }); }).map(function (u) { return '<option value="u:' + u.id + '">' + h(u.name) + ' (' + h(A().teamOf(u)) + ' · 이 근무에 없음 → 근무 생성)</option>'; }).join('') +
-        '</select><button class="btn" data-act="substitute"' + (isAbsent ? '' : ' disabled') + '>' + (isAbsent ? '대체자 배정' : '결원 등록 후 가능') + '</button></div>';
+        '</select>' + (a.role_name ? '<label class="chk" style="margin-top:10px"><input type="checkbox" id="giveRole" checked> 결원자의 역할(<b>' + h(a.role_name) + '</b>)도 대체자에게 부여</label>' : '') +
+        '<button class="btn" data-act="substitute"' + (isAbsent ? '' : ' disabled') + '>' + (isAbsent ? '대체자 배정' : '결원 등록 후 가능') + '</button></div>';
     var pendN = c.pending_handover_assignments.length;
     var step3 = '<div class="step' + (sub && pendN && !covered ? ' now' : (sub && !pendN ? ' done' : '')) + '"><div class="no">③ ' + (sub ? (pendN ? '진행 중' : '이관할 담당 없음') : '대기') + '</div><div class="ti">인계 담당 이관</div><div class="ds">기존 담당은 REPLACED 로 남기고 새 행을 만듭니다. 해당 인계는 SUPERSEDED 가 되고 <b>후속 인계가 같은 트랜잭션에서 발행</b>됩니다. CONFIRMED 인 인계는 <b>409</b></div><div class="src">POST /shift-assignments/' + id + '/handover-transfer</div><button class="btn' + (sub && pendN ? '' : ' sec') + '" data-act="transfer"' + (sub && pendN ? '' : ' disabled') + '>' + (sub ? (pendN ? '아래에서 선택한 담당 이관' : '남은 담당 없음') : '대체자 배정 후 가능') + '</button></div>';
     var step4 = covered ? '<div class="step done"><div class="no">④ 완료</div><div class="ti">대체 완료로 확인</div><div class="ds">covered_at = ' + A().dtFull(a.covered_at) + '<br>사람이 확인한 기록입니다. 자동 증명이 아닙니다</div><div class="src">POST /shift-assignments/' + id + '/coverage-confirmation</div><button class="btn sec" disabled>확인됨 ' + logAt('COVER_CONFIRMED') + '</button></div>'
@@ -225,7 +224,14 @@
       bind: function (root) {
         onAct(root, {
           absence: function () { I('registerAbsence', { shiftAssignmentId: id, body: { change_reason: sel(root, '#reason').value } }); A().render(); },
-          substitute: function () { var v = sel(root, '#cand').value; if (!v) { showErr(root, { status: 422, code: 'TARGET_REQUIRED', message: '대체자를 선택하세요' }); return; } var body = v.slice(0, 3) === 'sa:' ? { to_shift_assignment_id: +v.slice(3) } : { substitute_user_id: v.slice(2) }; I('assignSubstitute', { shiftAssignmentId: id, body: body }); A().render(); },
+          substitute: function () {
+            var v = sel(root, '#cand').value; if (!v) { showErr(root, { status: 422, code: 'TARGET_REQUIRED', message: '대체자를 선택하세요' }); return; }
+            var body = v.slice(0, 3) === 'sa:' ? { to_shift_assignment_id: +v.slice(3) } : { substitute_user_id: v.slice(2) };
+            var r = I('assignSubstitute', { shiftAssignmentId: id, body: body });
+            // 역할 부여는 별도 API(PATCH role) — 대체자 배정 자체는 역할을 옮기지 않는다 (DBML: 역할·팀은 강제하지 않음)
+            var give = sel(root, '#giveRole'); if (give && give.checked) { var absSa = S().db.shift_assignment.filter(function (x) { return x.id === id; })[0]; var toSa = S().db.shift_assignment.filter(function (x) { return x.id === r.to_shift_assignment_id; })[0]; if (absSa.role_type_id && !toSa.role_type_id) I('updateShiftAssignmentRole', { shiftAssignmentId: r.to_shift_assignment_id, body: { role_type_id: absSa.role_type_id } }); }
+            A().render();
+          },
           transfer: function () { var ids = all(root, '[data-stay]:checked').map(function (x) { return +x.dataset.stay; }); var r = I('transferHandoverOwnership', { shiftAssignmentId: id, body: { to_shift_assignment_id: sub.shift_assignment_id, inpatient_stay_ids: ids } }); A().render(); ok(sel(document, '#view'), '<b>' + r.transferred.length + '건 이관.</b> ' + r.transferred.map(function (t) { return t.superseded_handover_id ? '인계 #' + t.superseded_handover_id + ' → SUPERSEDED, 후속 #' + t.successor_handover_id + ' 발행' : '담당만 이관(인계 없음)'; }).join(' · ')); },
           cover: function () { I('confirmCoverage', { shiftAssignmentId: id }); A().render(); }
         });
