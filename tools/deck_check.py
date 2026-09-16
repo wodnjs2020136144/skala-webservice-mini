@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""생성된 덱을 검사한다 — python3 tools/deck_check.py
+"""생성된 덱을 검사한다 — python3 tools/deck_check.py [pptx 경로]
 
   1) 도형이 슬라이드 밖으로 나갔는가
   2) 표·텍스트가 아래로 넘치는가 (행 높이는 PowerPoint 가 정하므로 추정한다)
@@ -14,7 +14,7 @@ except ImportError:
     sys.exit('PyYAML 이 필요하다:  python3 -m pip install pyyaml')
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PPTX = os.path.join(ROOT, 'deliverables', '10반_황재원_너와나의인계고리-개요.pptx')
+PPTX = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, 'deliverables', '10반_황재원_너와나의인계고리-개요.pptx')   # 인자로 다른 덱도 검사한다
 OAS  = os.path.join(ROOT, 'deliverables', '10반_황재원_너와나의인계고리-API.yml')
 IN = 914400
 SW, SH = 10.0, 5.625
