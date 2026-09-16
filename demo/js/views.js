@@ -13,6 +13,7 @@
   function all(root, q) { return [].slice.call(root.querySelectorAll(q)); }
   function showErr(root, e) { var b = sel(root, '#err'); if (b) { b.innerHTML = A().errBox(e); b.scrollIntoView({ block: 'nearest' }); } else alert(e.message); }
   function ok(root, msg) { var b = sel(root, '#err'); if (b) b.innerHTML = '<div class="ok">' + msg + '</div>'; }
+  function roleNameById(id) { var r = S().db.role_type.filter(function (x) { return x.id === id; })[0]; return r ? r.name : null; }
   function crumb(parent, parentHash, cur) { return '<div class="crumb"><a href="' + parentHash + '">' + parent + '</a> &rsaquo; <b>' + cur + '</b></div>'; }
   function onAct(root, map) {
     root.addEventListener('click', function (e) {
@@ -54,6 +55,7 @@
   };
 
   // ---- 2. 병동 대시보드 ----------------------------------------
+  var dashState = { unconf: false };
   V.dashboard = function () {
     var d = I('getWardDashboard', { wardId: WARD });
     var total = d.shift_counts.reduce(function (s, x) { return s + x.headcount; }, 0);
@@ -62,15 +64,26 @@
     var rows = d.uncovered_absences.map(function (a) {
       return '<tr><td class="bed">' + h(a.user_name) + '</td><td>' + h(a.team_name || '—') + ' · ' + h(a.role_name || '미배정') + '</td><td>' + A().dLabel(a.work_date) + ' ' + A().shiftTag(a.shift_code, true) + '</td><td>' + h(a.absence_reason || '—') + '</td><td class="act"><a class="btn" href="#/reassign/' + a.shift_assignment_id + '">재배정</a></td></tr>';
     }).join('') || '<tr><td colspan="5" class="muted" style="text-align:center;padding:28px">대체 전 결원이 없습니다</td></tr>';
+    var unconfCard = '';
+    if (dashState.unconf) {
+      var un = I('listWardHandovers', { wardId: WARD, status: 'SENT' }).items;
+      var unrows = un.map(function (x) {
+        return '<tr><td class="bed">' + h(x.bed_no) + '</td><td class="code">' + h(x.patient_ref_code) + '</td><td>' + h(x.from_user_name) + ' <span class="muted">' + A().dLabel(x.work_date).replace(/\(.\)$/, '') + ' ' + h(x.shift_code) + '</span></td><td>' + h(x.to_user_name) + '</td><td>' + (x.sent_at ? A().dtLabel(x.sent_at) : '—') + '</td><td>' + A().badge(x.status) + '</td></tr>';
+      }).join('') || '<tr><td colspan="6" class="muted" style="text-align:center;padding:28px">미확인 인계가 없습니다</td></tr>';
+      unconfCard = '<div class="card"><div class="card-h"><span class="date" style="font-size:17px">미확인 인계 — 누가 받아야 하는가</span><span class="sp"></span><span class="code">GET /wards/5/handovers?status=SENT</span></div><table><thead><tr><th style="width:110px">병상</th><th style="width:200px">입원 건</th><th style="width:230px">보낸 사람 · 근무</th><th style="width:150px">받을 사람</th><th style="width:150px">전달 시각</th><th>상태</th></tr></thead><tbody>' + unrows + '</tbody></table>' +
+        '<div style="padding:0 24px 20px"><div class="muted" style="font-size:13px">수간호사는 <b>누가 안 받았는지</b>까지만 봅니다. 확인 처리는 <b>수신 당사자</b>만 할 수 있습니다 — 여기서 대신 확인할 수 없습니다.</div></div></div>';
+    }
     return { html: '<div class="wrap"><h1>병동 대시보드</h1><div class="sub">' + A().dLabel(d.date, true) + ' 기준 · <span class="code">GET /wards/5/dashboard?date=' + d.date + '</span></div><div id="err"></div>' +
       '<div class="tiles"><div class="tile"><div class="lb"><span class="ic"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 4.5a3.2 3.2 0 0 1 0 7"/><path d="M18 14c2 .6 3 2.4 3 5"/></svg></span>오늘 근무자 수</div><div class="vl">' + total + '<small>명</small></div><div class="sub2">' + d.shift_counts.map(function (x) { return x.shift_code + ' ' + x.headcount; }).join(' · ') + ' · ACTIVE 만</div><div class="src">shift_counts[]</div></div>' +
       '<div class="tile"><div class="lb"><span class="ic"><svg viewBox="0 0 24 24"><path d="M12 3l2.6 5.3 5.9.9-4.2 4.1 1 5.8L12 16.3 6.7 19.1l1-5.8L3.5 9.2l5.9-.9z"/></svg></span>역할별 배정 인원</div><div class="vl">' + Object.keys(roles).filter(function (k) { return k !== '미배정'; }).length + '<small>역할</small></div><div class="sub2">' + h(roleStr) + '</div><div class="src">role_counts[] · 필요 인원 분모 없음</div></div>' +
-      '<div class="tile"><div class="lb"><span class="ic"><svg viewBox="0 0 24 24"><path d="M4 4h16v12H8l-4 4z"/><path d="M8 9h8M8 12h5"/></svg></span>미확인 인계 건수</div><div class="vl">' + d.unconfirmed_handover_count + '<small>건</small></div><div class="sub2">status = SENT · 날짜 무관 · SUPERSEDED 자동 제외</div><div class="src">unconfirmed_handover_count</div></div>' +
+      '<div class="tile click' + (dashState.unconf ? ' on' : '') + '" data-act="unconf" title="어느 건인지 보기"><div class="lb"><span class="ic"><svg viewBox="0 0 24 24"><path d="M4 4h16v12H8l-4 4z"/><path d="M8 9h8M8 12h5"/></svg></span>미확인 인계 건수</div><div class="vl">' + d.unconfirmed_handover_count + '<small>건</small></div><div class="sub2">status = SENT · 날짜 무관 · SUPERSEDED 자동 제외</div><div class="src">unconfirmed_handover_count</div><div class="more">' + (dashState.unconf ? '접기 ▴' : '눌러서 목록 보기 ▾') + '</div></div>' +
       '<div class="tile' + (d.uncovered_absences.length ? ' alert' : '') + '"><div class="lb"><span class="ic"><svg viewBox="0 0 24 24"><path d="M12 3l9.5 17h-19z"/><path d="M12 10v4M12 17.5v.5"/></svg></span>결원 — 대체 전</div><div class="vl">' + d.uncovered_absences.length + '<small>건</small></div><div class="sub2">ABSENT 이고 covered_at 없음</div><div class="src">uncovered_absences[]</div></div></div>' +
       '<div class="card"><div class="card-h"><span class="date" style="font-size:17px">대체 전 결원</span><span class="sp"></span>' + (d.uncovered_absences.length ? '<span class="flag">재배정 필요</span>' : '') + '</div><table><thead><tr><th style="width:150px">근무자</th><th style="width:140px">팀 · 역할</th><th style="width:260px">근무</th><th>결원 사유</th><th style="width:140px"></th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+      unconfCard +
       '<div class="warn">결원은 <b>수간호사가 등록</b>합니다. 자동 감지가 아닙니다. 대체 완료도 <b>"대체 완료로 확인"</b> 버튼으로 사람이 확정합니다.</div>' +
       '<div class="bar2" style="flex-wrap:wrap"><a class="btn sec" href="#/shifts">확정 근무 등록</a><a class="btn sec" href="#/board">역할 · 인계 담당 배정</a><a class="btn sec" href="#/template">병동 인계 항목 관리</a><a class="btn sec" href="#/board">결원 등록 · 재배정 (배정 보드에서)</a><a class="btn sec" href="#/history">변경 이력</a></div>' +
-      '<div class="foot" style="color:#7A8A90">⚠️ <b>인계 미작성 N건</b>은 넣지 않습니다 — EMR 연동이 없어 "작성해야 했는데 안 쓴 건"을 셀 수 없습니다.</div></div>' };
+      '<div class="foot" style="color:#7A8A90">⚠️ <b>인계 미작성 N건</b>은 넣지 않습니다 — EMR 연동이 없어 "작성해야 했는데 안 쓴 건"을 셀 수 없습니다.</div></div>',
+      bind: function (root) { onAct(root, { unconf: function () { dashState.unconf = !dashState.unconf; A().render(); } }); } };
   };
 
   // ---- 3. 확정 근무 등록 (F-01) ----------------------------------
@@ -229,8 +242,22 @@
             var body = v.slice(0, 3) === 'sa:' ? { to_shift_assignment_id: +v.slice(3) } : { substitute_user_id: v.slice(2) };
             var r = I('assignSubstitute', { shiftAssignmentId: id, body: body });
             // 역할 부여는 별도 API(PATCH role) — 대체자 배정 자체는 역할을 옮기지 않는다 (DBML: 역할·팀은 강제하지 않음)
-            var give = sel(root, '#giveRole'); if (give && give.checked) { var absSa = S().db.shift_assignment.filter(function (x) { return x.id === id; })[0]; var toSa = S().db.shift_assignment.filter(function (x) { return x.id === r.to_shift_assignment_id; })[0]; if (absSa.role_type_id && !toSa.role_type_id) I('updateShiftAssignmentRole', { shiftAssignmentId: r.to_shift_assignment_id, body: { role_type_id: absSa.role_type_id } }); }
+            // 25라운드 R147: 대체자가 이미 역할을 갖고 있어도 체크되어 있으면 덮어쓴다. 조용히 넘어가면 체크박스가 거짓말을 한다
+            var roleMsg = '';
+            var give = sel(root, '#giveRole');
+            if (give && give.checked) {
+              var absSa = S().db.shift_assignment.filter(function (x) { return x.id === id; })[0];
+              var toSa = S().db.shift_assignment.filter(function (x) { return x.id === r.to_shift_assignment_id; })[0];
+              if (absSa.role_type_id && toSa.role_type_id !== absSa.role_type_id) {
+                var before = roleNameById(toSa.role_type_id);
+                var rr = I('updateShiftAssignmentRole', { shiftAssignmentId: r.to_shift_assignment_id, body: { role_type_id: absSa.role_type_id } });
+                roleMsg = ' · 역할 <b>' + h(before || '미배정') + ' → ' + h(rr.role_name) + '</b>';
+              } else if (absSa.role_type_id) {
+                roleMsg = ' · 역할은 이미 <b>' + h(roleNameById(absSa.role_type_id)) + '</b> 이라 변경 없음';
+              }
+            }
             A().render();
+            ok(sel(document, '#view'), '<b>' + h(r.user_name) + ' 간호사가 대체자로 배정되었습니다.</b>' + roleMsg);
           },
           transfer: function () { var ids = all(root, '[data-stay]:checked').map(function (x) { return +x.dataset.stay; }); var r = I('transferHandoverOwnership', { shiftAssignmentId: id, body: { to_shift_assignment_id: sub.shift_assignment_id, inpatient_stay_ids: ids } }); A().render(); ok(sel(document, '#view'), '<b>' + r.transferred.length + '건 이관.</b> ' + r.transferred.map(function (t) { return t.superseded_handover_id ? '인계 #' + t.superseded_handover_id + ' → SUPERSEDED, 후속 #' + t.successor_handover_id + ' 발행' : '담당만 이관(인계 없음)'; }).join(' · ')); },
           cover: function () { I('confirmCoverage', { shiftAssignmentId: id }); A().render(); }

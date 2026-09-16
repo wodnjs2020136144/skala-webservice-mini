@@ -466,6 +466,26 @@
   } };
 
   // ---- 대시보드 ------------------------------------------------
+  // 대시보드 드릴다운 — 미확인 건수(집계)와 같은 조건으로 목록을 돌려준다 (25라운드 R141)
+  OPS.listWardHandovers = { method: 'GET', path: '/wards/{wardId}/handovers', fn: function (ctx, p) {
+    requireWard(p.wardId); requireHeadNurse(ctx, p.wardId);
+    var status = p.status || 'SENT';
+    var items = where('handover', function (h) {
+      if (h.status !== status) return false;
+      if (one('inpatient_stay', h.inpatient_stay_id).ward_id !== p.wardId) return false;
+      if (!p.date) return true;
+      var fs = haSa(h.from_handover_assignment_id);
+      return !!fs && fs.work_date === p.date;
+    }).map(function (h) {
+      var st = one('inpatient_stay', h.inpatient_stay_id);
+      var fs = haSa(h.from_handover_assignment_id), ts = haSa(h.to_handover_assignment_id);
+      return { handover_id: h.id, inpatient_stay_id: st.id, bed_no: st.bed_no, patient_ref_code: st.patient_ref_code,
+        from_user_name: userName(fs.user_id), to_user_name: userName(ts.user_id),
+        work_date: fs.work_date, shift_code: fs.shift_code, status: h.status, sent_at: h.sent_at };
+    }).sort(function (a, b) { return a.bed_no < b.bed_no ? -1 : 1; });
+    return { status: 200, body: { items: items } };
+  } };
+
   OPS.getWardDashboard = { method: 'GET', path: '/wards/{wardId}/dashboard', fn: function (ctx, p) {
     requireWard(p.wardId); requireHeadNurse(ctx, p.wardId);
     var date = p.date || global.Store.today;

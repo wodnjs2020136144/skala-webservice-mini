@@ -21,6 +21,12 @@ as('H001');
 var d = ok('dashboard', () => I('getWardDashboard', { wardId: 5 }));
 console.log('     근무자', JSON.stringify(d.shift_counts), '미확인', d.unconfirmed_handover_count, '결원', d.uncovered_absences.map(x => x.user_name));
 ok('board 09-16 E', () => I('getAssignmentBoard', { wardId: 5, date: '2026-09-16', shift_code: 'E' }));
+// 25라운드 R141 — 대시보드 드릴다운: 집계와 목록이 같은 조건이어야 한다
+var wh = ok('미확인 목록(수간호사)', () => I('listWardHandovers', { wardId: 5, status: 'SENT' }));
+if (wh && wh.items.length !== d.unconfirmed_handover_count) { fails++; console.log('  FAIL 미확인 목록 건수가 집계와 다름', wh.items.length, '≠', d.unconfirmed_handover_count); }
+else console.log('     목록', wh.items.map(x => x.bed_no + ' ' + x.from_user_name + '→' + x.to_user_name).join(' · '));
+// 25라운드 R147 — 이미 역할이 있어도 덮어쓸 수 있어야 재배정 ②의 "역할도 부여" 체크가 거짓말을 하지 않는다
+ok('역할 덮어쓰기 PATCH (R147)', () => { var b = I('getAssignmentBoard', { wardId: 5, date: '2026-09-16', shift_code: 'E' }); var acting = b.rows.filter(r => r.role_name === '액팅')[0]; if (!acting) throw new Error('액팅 행 없음'); var r = I('updateShiftAssignmentRole', { shiftAssignmentId: acting.shift_assignment_id, body: { role_type_id: 1 } }); if (r.role_name !== '차지') throw new Error('역할이 안 바뀜: ' + r.role_name); I('updateShiftAssignmentRole', { shiftAssignmentId: acting.shift_assignment_id, body: { role_type_id: 3 } }); return r; });
 err('근무 중복 409', 409, () => I('createShiftAssignments', { wardId: 5, body: { items: [{ user_id: 'N003', work_date: '2026-09-16', shift_code: 'E' }] } }), 'SHIFT_DUPLICATE');
 ok('근무 등록 201', () => I('createShiftAssignments', { wardId: 5, body: { items: [{ user_id: 'N005', work_date: '2026-09-17', shift_code: 'D' }] } }));
 err('담당 중복 409', 409, () => I('assignHandoverOwnership', { shiftAssignmentId: 211, body: { inpatient_stay_ids: [1] } }), 'ALREADY_ASSIGNED');
@@ -95,6 +101,7 @@ var d2 = ok('dashboard 후', () => I('getWardDashboard', { wardId: 5 }));
 console.log('     미확인', d2.unconfirmed_handover_count, '결원', d2.uncovered_absences.length);
 console.log('# 최서연 (대체자) — 후속 인계 확인');
 as('N006');
+err('미확인 목록 — 간호사 403 (R141)', 403, () => I('listWardHandovers', { wardId: 5 }), 'FORBIDDEN');
 var m3 = ok('내 근무', () => I('getMyShifts', {}));
 console.log('     has_reassignment', m3.shifts[0].has_reassignment, '504-1', JSON.stringify(m3.shifts[0].team_stays.filter(x => x.bed_no === '504-1')[0]));
 var v = Seed.check(Store.db, { seedOnly: false }); console.log('# 사후 seed.check 위반', v.length); v.forEach(x => console.log('  -', x));

@@ -554,9 +554,14 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [items]
+                required: [from, to, shifts]
                 properties:
-                  items:
+                  from:
+                    type: string
+                    format: date
+                    description: 서버가 확정한 조회 시작일. query 를 생략했을 때 무엇으로 계산됐는지 화면이 알 수 있게 돌려준다.
+                  to: { type: string, format: date }
+                  shifts:
                     type: array
                     items: { $ref: '#/components/schemas/MyShift' }
         '401': { $ref: '#/components/responses/Unauthorized' }
@@ -847,6 +852,44 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
 
+  /wards/{wardId}/handovers:
+    get:
+      tags: [dashboard]
+      operationId: listWardHandovers
+      summary: 병동 인계 목록 (대시보드 드릴다운)
+      description: |
+        대시보드의 **미확인 인계 건수**를 눌렀을 때 *어느 건인지* 보여준다.
+        기본값 `status=SENT` 이 그 숫자와 같은 집합이다 — 집계와 목록이 같은 조건을 쓴다.
+        `SUPERSEDED` 는 별도 상태라 기본 목록에서 자동으로 빠진다.
+        수간호사 전용이다. 간호사는 `GET /me/handovers` 로 자기 것만 본다.
+      parameters:
+        - $ref: '#/components/parameters/WardId'
+        - name: status
+          in: query
+          required: false
+          description: '생략하면 `SENT` — 대시보드 미확인 건수와 같은 조건.'
+          schema: { $ref: '#/components/schemas/HandoverStatus' }
+        - name: date
+          in: query
+          required: false
+          description: '주면 그 날짜의 근무에 걸린 인계만. 생략하면 날짜 무관(확인 대기 전부).'
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/WardHandoverItem' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
   /wards/{wardId}/dashboard:
     get:
       tags: [dashboard]
@@ -970,7 +1013,12 @@ components:
               shift_assignment_id: { type: integer }
               user_name: { type: string }
               team_name: { type: string, nullable: true }
+              team_id: { type: integer, nullable: true }
               role_name: { type: string, nullable: true }
+              role_type_id:
+                type: integer
+                nullable: true
+                description: 화면의 역할 `select` 현재값. `PATCH /shift-assignments/{id}` 가 같은 값을 받는다.
               status: { $ref: '#/components/schemas/ShiftStatus' }
               handover_assignments:
                 type: array
@@ -984,6 +1032,7 @@ components:
       required: [inpatient_stay_id, bed_no]
       properties:
         team_name: { type: string }
+        team_id: { type: integer, nullable: true }
         inpatient_stay_id: { type: integer }
         bed_no: { type: string }
 
@@ -1010,7 +1059,7 @@ components:
 
     TeamStay:
       type: object
-      required: [inpatient_stay_id, bed_no, patient_ref_code, admitted_at, handover_status, is_handover_owner, incoming_handover_id, outgoing_handover_id, outgoing_status]
+      required: [inpatient_stay_id, bed_no, patient_ref_code, admitted_at, handover_status, is_handover_owner, handover_assignment_id, incoming_handover_id, incoming_to_me, outgoing_handover_id, outgoing_status]
       properties:
         inpatient_stay_id: { type: integer }
         bed_no: { type: string }
@@ -1023,7 +1072,20 @@ components:
         is_handover_owner:
           type: boolean
           description: 내 근무에 이 입원 건의 `ACTIVE` 인계 담당이 있으면 참.
+        handover_assignment_id:
+          type: integer
+          nullable: true
+          description: |
+            내 근무의 이 입원 건 `ACTIVE` 인계 담당 id. `is_handover_owner` 가 거짓이면 `null`.
+            화면 9 가 `POST /handovers` 의 `from_handover_assignment_id` 로 그대로 보낸다 —
+            **화면이 요청에 넣는 식별자는 조회 응답에서 나와야 한다.**
         incoming_handover_id: { type: integer, nullable: true }
+        incoming_to_me:
+          type: boolean
+          description: |
+            `incoming_handover_id` 의 수신 당사자가 **나**이면 참.
+            같은 팀·같은 근무라 **보이기만 하는 것**(읽기 3단 ③ · 액팅·역할 미배정자)과
+            **내가 확인해야 하는 것**(수신 당사자)을 가른다. 화면 8 은 이 값이 참일 때만 "인계 확인" 버튼을 건다.
         outgoing_handover_id: { type: integer, nullable: true }
         outgoing_status:
           type: string
@@ -1033,8 +1095,9 @@ components:
 
     MyShift:
       type: object
-      required: [work_date, shift_code, is_absent, has_reassignment, team_stays]
+      required: [shift_assignment_id, work_date, shift_code, is_absent, has_reassignment, team_stays]
       properties:
+        shift_assignment_id: { type: integer }
         work_date: { type: string, format: date }
         shift_code: { $ref: '#/components/schemas/ShiftCode' }
         role_name: { type: string, nullable: true }
@@ -1080,9 +1143,24 @@ components:
         - $ref: '#/components/schemas/Handover'
         - type: object
           properties:
+            bed_no: { type: string }
+            patient_ref_code: { type: string }
+            team_name: { type: string, nullable: true }
+            created_at: { type: string, format: date-time }
             sent_at: { type: string, format: date-time, nullable: true }
+            superseded_at: { type: string, format: date-time, nullable: true }
+            superseded_by_handover_id:
+              type: integer
+              nullable: true
+              description: '`SUPERSEDED` 일 때 후속 인계의 id. 화면이 원본 → 후속으로 이어 보여준다.'
             from_user_name: { type: string }
+            from_work_date: { type: string, format: date }
+            from_shift_code: { $ref: '#/components/schemas/ShiftCode' }
+            from_role_name: { type: string, nullable: true }
             to_user_name: { type: string }
+            to_work_date: { type: string, format: date }
+            to_shift_code: { $ref: '#/components/schemas/ShiftCode' }
+            to_role_name: { type: string, nullable: true }
             receipt: { $ref: '#/components/schemas/HandoverReceipt' }
 
     HandoverHistoryItem:
@@ -1092,12 +1170,17 @@ components:
         handover_id: { type: integer }
         inpatient_stay_id: { type: integer }
         bed_no: { type: string }
+        patient_ref_code: { type: string }
         work_date: { type: string, format: date }
         shift_code: { $ref: '#/components/schemas/ShiftCode' }
         direction:
           type: string
           enum: [sent, received]
         status: { $ref: '#/components/schemas/HandoverStatus' }
+        created_at:
+          type: string
+          format: date-time
+          description: 목록 정렬 기준(최신 먼저). `DRAFT` 는 `sent_at` 이 없으므로 이 값으로 줄을 세운다.
         sent_at: { type: string, format: date-time, nullable: true }
         confirmed_at: { type: string, format: date-time, nullable: true }
 
@@ -1121,6 +1204,7 @@ components:
           properties:
             shift_assignment_id: { type: integer }
             user_name: { type: string }
+            team_name: { type: string, nullable: true }
             work_date: { type: string, format: date }
             shift_code: { $ref: '#/components/schemas/ShiftCode' }
             role_name: { type: string, nullable: true }
@@ -1135,6 +1219,7 @@ components:
             properties:
               shift_assignment_id: { type: integer }
               user_name: { type: string }
+              team_name: { type: string, nullable: true }
               role_name: { type: string, nullable: true }
         pending_handover_assignments:
           type: array
@@ -1148,15 +1233,46 @@ components:
         changed_at: { type: string, format: date-time }
         change_type: { $ref: '#/components/schemas/ChangeType' }
         from_user_name: { type: string }
+        from_work_date:
+          type: string
+          format: date
+          description: 결원자 근무의 날짜·근무조·역할. 화면 7 타임라인이 "박○○ (9/15 E · 차지)" 처럼 한 줄로 보여준다.
+        from_shift_code: { $ref: '#/components/schemas/ShiftCode' }
+        from_role_name: { type: string, nullable: true }
         to_user_name: { type: string, nullable: true }
         inpatient_stay_id: { type: integer, nullable: true }
+        bed_no: { type: string, nullable: true }
+        patient_ref_code: { type: string, nullable: true }
         change_reason: { type: string }
         changed_by_user_name: { type: string }
 
+    WardHandoverItem:
+      type: object
+      description: 대시보드 드릴다운 한 줄. 누가 보냈고 누가 받아야 하는지가 한눈에 보여야 한다.
+      required: [handover_id, status, bed_no, from_user_name, to_user_name]
+      properties:
+        handover_id: { type: integer }
+        inpatient_stay_id: { type: integer }
+        bed_no: { type: string }
+        patient_ref_code: { type: string }
+        from_user_name: { type: string }
+        to_user_name: { type: string }
+        work_date:
+          type: string
+          format: date
+          description: 보내는 쪽 근무의 날짜.
+        shift_code: { $ref: '#/components/schemas/ShiftCode' }
+        status: { $ref: '#/components/schemas/HandoverStatus' }
+        sent_at: { type: string, format: date-time, nullable: true }
+
     WardDashboard:
       type: object
-      required: [shift_counts, role_counts, unconfirmed_handover_count, uncovered_absences]
+      required: [date, shift_counts, role_counts, unconfirmed_handover_count, uncovered_absences]
       properties:
+        date:
+          type: string
+          format: date
+          description: 이 집계의 기준 날짜. `date` query 를 생략하면 서버가 오늘로 정하므로 응답이 돌려준다.
         shift_counts:
           type: array
           items:
@@ -1188,6 +1304,7 @@ components:
             properties:
               shift_assignment_id: { type: integer }
               user_name: { type: string }
+              team_name: { type: string, nullable: true }
               work_date: { type: string, format: date }
               shift_code: { $ref: '#/components/schemas/ShiftCode' }
               role_name: { type: string, nullable: true }
