@@ -42,16 +42,17 @@
     <table>
       <thead><tr><th style="width:150px">근무자</th><th style="width:110px">팀</th><th style="width:200px">근무조</th><th style="width:150px">역할</th><th>상태</th><th style="width:120px"></th></tr></thead>
       <tbody>
-        <tr><td class="bed">박지우</td><td>A팀</td><td><span class="tag t-d">D · 데이</span></td><td><span class="role">차지</span></td><td>ACTIVE</td><td class="act"><button class="btn sec">삭제</button></td></tr>
-        <tr><td class="bed">이민혜</td><td>A팀</td><td><span class="tag t-d">D · 데이</span></td><td><span class="role">서브차지</span></td><td>ACTIVE</td><td class="act"><button class="btn sec">삭제</button></td></tr>
-        <tr><td class="bed">최서연</td><td>B팀</td><td><span class="tag t-d">D · 데이</span></td><td><span class="role none">역할 배정 대기</span></td><td>ACTIVE</td><td class="act"><button class="btn sec">삭제</button></td></tr>
-        <tr><td class="bed">한가람</td><td>B팀</td><td><span class="tag t-d">D · 데이</span></td><td><span class="role">차지</span></td><td style="color:#B3261E;font-weight:600">ABSENT</td><td class="act"><button class="btn sec">삭제</button></td></tr>
-        <tr><td class="bed">정하늘</td><td>A팀</td><td><span class="tag t-n">N · 나이트</span></td><td><span class="role">차지</span></td><td>ACTIVE</td><td class="act"><button class="btn sec">삭제</button></td></tr>
+        <tr><td class="bed">박지우</td><td>A팀</td><td><span class="tag t-d">D · 데이</span></td><td><span class="role">차지</span></td><td>ACTIVE</td><td class="act"><span style="color:#9AAAB0;font-size:14px">역할은 배정 화면에서</span></td></tr>
+        <tr><td class="bed">이민혜</td><td>A팀</td><td><span class="tag t-d">D · 데이</span></td><td><span class="role">서브차지</span></td><td>ACTIVE</td><td class="act"><span style="color:#9AAAB0;font-size:14px">역할은 배정 화면에서</span></td></tr>
+        <tr><td class="bed">최서연</td><td>B팀</td><td><span class="tag t-d">D · 데이</span></td><td><span class="role none">역할 배정 대기</span></td><td>ACTIVE</td><td class="act"><span style="color:#9AAAB0;font-size:14px">역할은 배정 화면에서</span></td></tr>
+        <tr><td class="bed">한가람</td><td>B팀</td><td><span class="tag t-d">D · 데이</span></td><td><span class="role">차지</span></td><td style="color:#B3261E;font-weight:600">ABSENT</td><td class="act"><span style="color:#9AAAB0;font-size:14px">재배정 화면에서</span></td></tr>
+        <tr><td class="bed">정하늘</td><td>A팀</td><td><span class="tag t-n">N · 나이트</span></td><td><span class="role">차지</span></td><td>ACTIVE</td><td class="act"><span style="color:#9AAAB0;font-size:14px">역할은 배정 화면에서</span></td></tr>
       </tbody>
     </table>
   </div>
 
-  <div class="warn">같은 사람이 같은 날 같은 근무조에 두 번 등록되면 <b>409</b> 로 거부됩니다.
+  <div class="warn">등록 취소(삭제)는 <b>이번 범위 밖</b>입니다 — F-01 은 조회·등록만 정의합니다.
+    <br>같은 사람이 같은 날 같은 근무조에 두 번 등록되면 <b>409</b> 로 거부됩니다.
     <br>다른 병동 소속자의 <b>지원 근무는 허용</b>합니다 — 소속(<span class="code">users.ward_id</span>)과 근무 병동은 다른 값입니다.</div>
 
   <div class="row-actions"><button class="btn sec">되돌리기</button><button class="btn">저장</button></div>

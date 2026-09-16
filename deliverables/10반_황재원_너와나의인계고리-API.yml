@@ -540,10 +540,12 @@ paths:
         - name: from
           in: query
           required: false
+          description: '생략하면 **오늘**부터.'
           schema: { type: string, format: date }
         - name: to
           in: query
           required: false
+          description: '생략하면 **다음 근무일까지** — 오늘 이후 첫 `work_date`, 없으면 오늘. 서버가 계산한다.'
           schema: { type: string, format: date }
       responses:
         '200':
@@ -858,6 +860,7 @@ paths:
         - name: date
           in: query
           required: false
+          description: '생략하면 **오늘**. 결원 집계는 이 날짜의 `ward_id` · `work_date` 범위로 한정된다.'
           schema: { type: string, format: date }
       responses:
         '200':
@@ -984,6 +987,18 @@ components:
         inpatient_stay_id: { type: integer }
         bed_no: { type: string }
 
+    PendingHandoverAssignment:
+      type: object
+      description: 결원자 이름으로 남은 `ACTIVE` 인계 담당. 화면 6 이 병상·입원 건·인계 상태를 한 줄로 보여준다.
+      required: [inpatient_stay_id, bed_no, patient_ref_code, handover_status]
+      properties:
+        inpatient_stay_id: { type: integer }
+        bed_no: { type: string }
+        patient_ref_code: { type: string }
+        handover_status:
+          type: string
+          enum: [NONE, DRAFT, SENT, CONFIRMED, SUPERSEDED]
+
     HandoverTemplateItem:
       type: object
       required: [id, label, is_required, sort_order]
@@ -995,7 +1010,7 @@ components:
 
     TeamStay:
       type: object
-      required: [inpatient_stay_id, bed_no, handover_status, is_handover_owner]
+      required: [inpatient_stay_id, bed_no, patient_ref_code, admitted_at, handover_status, is_handover_owner, incoming_handover_id, outgoing_handover_id, outgoing_status]
       properties:
         inpatient_stay_id: { type: integer }
         bed_no: { type: string }
@@ -1018,7 +1033,7 @@ components:
 
     MyShift:
       type: object
-      required: [work_date, shift_code, is_absent, team_stays]
+      required: [work_date, shift_code, is_absent, has_reassignment, team_stays]
       properties:
         work_date: { type: string, format: date }
         shift_code: { $ref: '#/components/schemas/ShiftCode' }
@@ -1124,7 +1139,7 @@ components:
         pending_handover_assignments:
           type: array
           description: 결원자 이름으로 남은 `ACTIVE` 인계 담당. 화면이 경고로 보여주고 사람이 판단한다.
-          items: { $ref: '#/components/schemas/TeamStayBrief' }
+          items: { $ref: '#/components/schemas/PendingHandoverAssignment' }
 
     ReassignmentLog:
       type: object
