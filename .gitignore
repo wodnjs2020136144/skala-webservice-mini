@@ -3,5 +3,3 @@ __pycache__/
 .DS_Store
 node_modules/
 
-# 생성기 출력 — 사용자 편집본(…-개요.pptx)과 분리한다 (29라운드)
-deliverables/*.generated.pptx

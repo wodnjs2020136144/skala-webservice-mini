@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""제출용 덱(40장)에서 발표용 14장을 뽑는다 — 제목으로 고르고 나머지를 지운다.
+"""제출용 덱(40장)에서 발표용 14장을 뽑는다 — 제목으로 고르고 나머지를 지운다. 제출용은 work/deck_build.js 가 만든다(단일 출처).
 
   python3 tools/make_talk_deck.py [제출용.pptx] [발표용.pptx]
 
@@ -33,7 +33,7 @@ IN = 914400
 def titles_of(sl):
     """제목 상자만 본다(위 0.3in · 왼쪽 여백 · 폭 3in 이상) — 목차의 항목 글자에 걸리지 않게"""
     return set(sh.text_frame.text.strip() for sh in sl.shapes
-               if sh.has_text_frame and abs(sh.top / IN - 0.3) < 0.06 and sh.left / IN < 0.7 and sh.width / IN > 3)
+               if sh.has_text_frame and abs(sh.top / IN - 0.3) < 0.06 and sh.left / IN < 0.7 and sh.width / IN > 2)   # 레일형 제목(폭 2.55in)도 잡는다
 
 def matches(k, t):   # k 는 문자열 또는 대체 제목 튜플
     return any(x in t for x in (k if isinstance(k, tuple) else (k,)))

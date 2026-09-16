@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-"""사용자가 PowerPoint 로 직접 고친 덱에 세션 슬라이드를 **삽입/교체**한다 — 생성기로 덮어쓰지 않는다.
+"""[이력용] 29·30라운드 편집본 시대의 도구. **31라운드부터 생성기(work/deck_build.js)가 단일 출처**라 더 쓰지 않는다.
+사용자가 PowerPoint 로 직접 고친 덱에 세션 슬라이드를 **삽입/교체**한다 — 생성기로 덮어쓰지 않는다.
 
   python3 tools/insert_session_slides.py [pptx]               36장 → 38장: 34장(못 한 것) 뒤에 35·36 삽입 (29라운드 R162)
   python3 tools/insert_session_slides.py --rebuild35 [pptx]   38장 파일의 35장(써 본 사람의 말)만 새로 짜서 교체 (R163)
