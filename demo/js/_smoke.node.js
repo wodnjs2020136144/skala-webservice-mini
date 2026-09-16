@@ -71,6 +71,10 @@ as('N003'); var dr = ok('한서윤 502-2 DRAFT 생성 (⑥ 다음 담당 = 정�
 as('N004'); n++; var recvHist = I('listMyHandovers', { direction: 'received' }).items.some(x => x.handover_id === dr.handover_id); if (recvHist) { fails++; console.log('  FAIL 수신 측 이력에 DRAFT 포함 (R131)'); } else console.log('  ok  수신 측 이력에 DRAFT 없음 (R131)');
 n++; var st3 = I('getMyShifts', {}).shifts[0].team_stays.filter(x => x.inpatient_stay_id === 3)[0]; if (st3.handover_status === 'DRAFT') console.log('  ok  화면 8 handover_status=DRAFT (링크는 UI 가 숨김 · R130)'); else { fails++; console.log('  FAIL DRAFT 상태 기대, 실제', st3.handover_status); }
 
+console.log('# 한가람 (결원) — 수신 불가');
+as('N007');
+err('결원 근무의 수신자 열람 기록 403 (R135)', 403, () => I('createHandoverReceipt', { handoverId: 8 }), 'RECEIVER_ABSENT');
+err('결원 근무의 수신자 확인 403 (R135)', 403, () => I('confirmHandoverReceipt', { handoverId: 8 }), 'RECEIVER_ABSENT');
 console.log('# 수간호사 — 한가람 결원 4단계 (222)');
 as('H001');
 var cx = ok('context', () => I('getReassignmentContext', { shiftAssignmentId: 222 }));

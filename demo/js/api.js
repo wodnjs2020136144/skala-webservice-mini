@@ -431,7 +431,11 @@
   } };
   function requireReceiver(ctx, h) {
     var me = requireMe(ctx);
-    if (haSa(h.to_handover_assignment_id).user_id !== me.id) throw new ApiError(403, 'NOT_RECEIVER', '수신 당사자(다음 근무의 인계 담당)만 할 수 있습니다 — 같은 팀 액팅은 열람만');
+    var toHa = one('handover_assignment', h.to_handover_assignment_id), toSa = haSa(h.to_handover_assignment_id);
+    if (toSa.user_id !== me.id) throw new ApiError(403, 'NOT_RECEIVER', '수신 당사자(다음 근무의 인계 담당)만 할 수 있습니다 — 같은 팀 액팅은 열람만');
+    // 24라운드 R135 — 작성 쪽(R107)과 대칭: 결원(ABSENT)이거나 담당이 이관(REPLACED)된 수신자는 받을 수 없다
+    if (toSa.status !== 'ACTIVE') throw new ApiError(403, 'RECEIVER_ABSENT', '결원(ABSENT)으로 등록된 근무입니다 — 인계 담당은 재배정 화면에서 이관됩니다');
+    if (toHa.status !== 'ACTIVE') throw new ApiError(403, 'RECEIVER_REPLACED', '이 인계의 담당은 이미 이관되었습니다(REPLACED)');
     return me;
   }
   function requireSent(h) {

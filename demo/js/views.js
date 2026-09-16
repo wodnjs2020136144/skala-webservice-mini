@@ -273,12 +273,17 @@
           if (t.is_handover_owner && !t.outgoing_handover_id) acts.push('<button class="btn' + (acts.length ? ' sec' : '') + '" data-act="create" data-stay="' + t.inpatient_stay_id + '" data-ha="' + t.handover_assignment_id + '">인계 작성</button>');
           else if (t.is_handover_owner && t.outgoing_status === 'DRAFT') acts.push('<a class="btn" href="#/handover/' + t.outgoing_handover_id + '/write">작성 계속 · DRAFT</a>');
           else if (t.outgoing_handover_id) acts.push('<a class="btn sec" href="#/handover/' + t.outgoing_handover_id + '/write">보낸 인계 보기</a>');
-          var act = acts.join(' ') || '<span class="muted">작성은 팀 차지</span>';
+          if (s.is_absent) { // 결원 근무: 열람만 (R135) — 확인·작성 버튼 대신 보기 링크
+            acts = [];
+            if (t.incoming_handover_id && t.handover_status !== 'DRAFT') acts.push('<a class="btn sec" href="#/handover/' + t.incoming_handover_id + '/receive">받은 인계 보기</a>');
+            if (t.outgoing_handover_id && t.outgoing_status !== 'DRAFT') acts.push('<a class="btn sec" href="#/handover/' + t.outgoing_handover_id + '/write">보낸 인계 보기</a>');
+          }
+          var act = acts.join(' ') || '<span class="muted">' + (s.is_absent ? '결원 — 재배정 화면에서 이관' : '작성은 팀 차지') + '</span>';
           var outCell = t.is_handover_owner ? (t.outgoing_status ? A().badge(t.outgoing_status) : '<span class="muted">아직 작성 전</span>') : '<span class="muted">—</span>';
           return '<tr><td class="bed">' + h(t.bed_no) + (t.is_handover_owner ? ' <span class="chip" style="font-size:11px;padding:2px 7px">인계 담당</span>' : '') + '</td><td class="code">' + h(t.patient_ref_code) + '</td><td style="white-space:nowrap">' + note + '</td><td>' + A().badge(t.handover_status) + '</td><td>' + outCell + '</td><td class="act">' + act + '</td></tr>';
         }).join('');
         body = '<table><thead><tr><th style="width:170px">병상</th><th style="width:200px">입원 건</th><th style="white-space:nowrap">비고</th><th style="width:160px">받은 인계<br><span style="font-weight:500;text-transform:none;letter-spacing:0">앞 근무 → 나</span></th><th style="width:170px">보낸 인계<br><span style="font-weight:500;text-transform:none;letter-spacing:0">나 → 다음 근무</span></th><th style="width:270px"></th></tr></thead><tbody>' + rows + '</tbody></table>' +
-          '<div style="padding:14px 24px;font-size:14px;color:#5B6B70;background:#FAFCFC;border-top:1px solid #EDF2F4">' + (anyOwner ? '이 근무의 <b>인계 담당</b>입니다. 작성은 다음 근무 팀 차지에게, 확인은 앞 근무에서 받은 인계에 합니다.' : '액팅은 우리 팀 인계를 <b>열람</b>합니다. 인계 작성·확인은 이 근무의 <b>' + h(s.team_name) + ' 차지(인계 담당)</b>가 합니다.') + '</div>';
+          '<div style="padding:14px 24px;font-size:14px;color:#5B6B70;background:#FAFCFC;border-top:1px solid #EDF2F4">' + (s.is_absent ? '이 근무는 <b>결원(ABSENT)</b>으로 등록되었습니다. 인계 작성·확인은 할 수 없고, 담당 입원 건은 수간호사가 <b>재배정 화면에서 대체자에게 이관</b>합니다 (403).' : anyOwner ? '이 근무의 <b>인계 담당</b>입니다. 작성은 다음 근무 팀 차지에게, 확인은 앞 근무에서 받은 인계에 합니다.' : '액팅은 우리 팀 인계를 <b>열람</b>합니다. 인계 작성·확인은 이 근무의 <b>' + h(s.team_name) + ' 차지(인계 담당)</b>가 합니다.') + '</div>';
       }
       return '<div class="card"><div class="card-h' + (s.work_date === today ? ' today' : '') + '"><span class="date">' + A().dLabel(s.work_date).replace(/\(.\)$/, '') + '</span><span class="dow">' + A().dow(s.work_date) + (s.work_date === today ? ' · 오늘' : '') + '</span>' + A().shiftTag(s.shift_code) + A().roleBadge(s.role_name) + '<span class="role none">' + h(s.team_name || '—') + '</span><span class="sp"></span>' + (s.is_absent ? '<span class="flag" style="color:#B3261E;background:#FFEDEE;border-color:#F5C6C4">결원 (ABSENT)</span>' : '') + (s.has_reassignment ? '<span class="flag">결원 재배정 이력 있음</span>' : '') + '</div>' + body + '</div>';
     }).join('') || '<div class="card"><div class="empty"><div class="ic">📅</div><div class="ttl">오늘부터 다음 근무까지 등록된 근무가 없습니다</div><span class="next">다음 할 일 — 수간호사가 확정 근무 등록에서 등록합니다</span></div></div>';
@@ -328,11 +333,16 @@
   V.receive = function (id) {
     var d = loadHandover(id); var me = S().me();
     var isRecv = d._access.is_receiver, sent = d.status === 'SENT';
-    if (isRecv && sent) { I('createHandoverReceipt', { handoverId: +id }); d = loadHandover(id); } // 화면 진입 = 열람 기록 (GET 과 분리 · T6-b)
+    var receiptErr = null;
+    if (isRecv && sent) { // 화면 진입 = 열람 기록 (GET 과 분리 · T6-b). 결원·이관된 수신자는 403 — 열람은 되므로 안내만 (R135)
+      try { I('createHandoverReceipt', { handoverId: +id }); } catch (e) { if (!(e instanceof global.Api.ApiError)) throw e; receiptErr = e; }
+      d = loadHandover(id);
+    }
     var rc = d.receipt;
     var summaryCard = d.status === 'CONFIRMED' ? '<div class="card" style="border-color:#BEE3C2"><div class="card-h" style="background:#F6FBF6"><span class="date" style="font-size:17px">핵심 내용 요약 — 확인 완료</span><span class="sp"></span><span class="code">confirmed_at ' + A().dtFull(rc.confirmed_at) + '</span></div><div style="padding:18px 24px 24px"><div class="read">' + h(rc.receiver_summary) + '</div><div class="muted" style="margin-top:10px">받은 사람 ' + h(d.to_user_name) + ' · 열람 ' + A().dtLabel(rc.received_at) + ' · 확인 ' + A().dtLabel(rc.confirmed_at) + '. CONFIRMED 이후 요약은 수정할 수 없습니다 (409).</div></div></div>'
       : d.status === 'SUPERSEDED' ? '<div class="warn"><b>SUPERSEDED</b> — 수신자 결원으로 대체된 인계입니다. 읽기 전용이고 미확인 건수에서 빠집니다. <a href="#/handover/' + d.superseded_by_handover_id + '/receive">후속 인계 #' + d.superseded_by_handover_id + '</a>' + (rc.received_at ? ' · 원래 수신자가 ' + A().dtLabel(rc.received_at) + ' 열어본 기록은 남습니다' : '') + '</div>'
       : '<div class="card" style="border-color:#BCD0D6"><div class="card-h" style="background:#F5F9FA"><span class="date" style="font-size:17px">핵심 내용 요약</span><span class="req">필수</span><span class="sp"></span>' + (rc.received_at ? '<span class="code">received_at ' + A().tLabel(rc.received_at) + '</span>' : '') + '</div><div style="padding:18px 24px 24px"><div style="font-size:14px;color:#5B6B70;line-height:1.6">받은 내용을 <b>직접 요약해 주세요.</b> 읽은 것만으로는 확인 처리가 되지 않습니다.' + (!isRecv ? ' <b style="color:#B3261E">지금은 수신 당사자가 아닙니다 — 확인 처리를 누르면 403 입니다.</b>' : '') + '</div><textarea id="summary" class="' + (rc.receiver_summary ? '' : 'miss') + '" style="min-height:96px" placeholder="예) ' + h(d.bed_no) + ' 낙상 고위험, 난간 상시 올림. 자정 검사 결과 확인 후 이상 시 당직의 연락.">' + h(rc.receiver_summary) + '</textarea></div></div>' +
+        (receiptErr ? '<div class="danger"><b>' + receiptErr.status + ' ' + h(receiptErr.code) + '</b> — ' + h(receiptErr.message) + '</div>' : '') +
         '<div class="warn" id="warnBox"' + (rc.receiver_summary ? ' style="display:none"' : '') + '>요약을 입력해야 <b>확인 처리</b>를 할 수 있습니다. <b>(422)</b></div><div class="row-actions"><a class="btn sec" href="#/me">나중에 하기</a><button class="btn" data-act="confirm">확인 처리</button></div>';
     var title = isRecv ? '인계 수신 · 요약 확인' : d._access.is_author ? '보낸 인계' : '인계 열람';
     return {
