@@ -348,6 +348,8 @@ Table handover {
     (to_handover_assignment_id, status) [note: '내가 받을 인계 조회용. 미확인 건수 집계(status=SENT)도 이 인덱스를 쓴다']
     (from_handover_assignment_id) [note: '내가 보낸 인계 조회용']
     (inpatient_stay_id, created_at) [note: '이 입원 건의 인계 이력. 같은 팀 액팅의 열람(읽기 3단 ③)도 이 인덱스를 쓴다']
+    (inpatient_stay_id, status) [note:
+      '병동 대시보드의 미확인 인계 건수(status=SENT)를 inpatient_stay.ward_id 로 좁혀 세는 집계용. 09-16 17라운드 R102']
   }
 
   Note: '''
