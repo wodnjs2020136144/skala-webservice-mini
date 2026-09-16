@@ -3,6 +3,7 @@
 
   python3 tools/insert_session_slides.py [pptx]               36장 → 38장: 34장(못 한 것) 뒤에 35·36 삽입 (29라운드 R162)
   python3 tools/insert_session_slides.py --rebuild35 [pptx]   38장 파일의 35장(써 본 사람의 말)만 새로 짜서 교체 (R163)
+  python3 tools/insert_session_slides.py --front [pptx]       38장 → 40장: 표지 뒤에 "교대할 때 무슨 일이" · "세 가지를 한다" 삽입, 목차는 뒤로 (30라운드 R164)
 
   안전장치
   - PowerPoint 가 그 파일을 열고 있으면 중단한다 (열린 채 쓰면 사용자가 나중에 저장할 때 변경이 사라진다)
@@ -16,16 +17,16 @@ from pptx import Presentation
 from pptx.util import Inches, Pt
 from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
-from pptx.enum.shapes import MSO_CONNECTOR
+from pptx.enum.shapes import MSO_CONNECTOR, MSO_SHAPE
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 args = [a for a in sys.argv[1:] if not a.startswith('--')]
-MODE = 'rebuild35' if '--rebuild35' in sys.argv else 'insert'
+MODE = 'rebuild35' if '--rebuild35' in sys.argv else ('front' if '--front' in sys.argv else 'insert')
 PPTX = args[0] if args else os.path.join(ROOT, 'deliverables', '10반_황재원_너와나의인계고리-개요.pptx')   # 인자 = 시험용 복사본
 BACKUP_DIR = os.path.join(ROOT, 'work', 'backup')
 
 PAPER, INK, INK2, MUTED, LINE = 'FBF8F2', '2A2926', '55524B', '8A867C', 'E6E0D4'
-TEAL, AMBER = '1F8A7E', 'B9772E'
+TEAL, AMBER, TEAL_SOFT, AMBER_SOFT = '1F8A7E', 'B9772E', 'E4F3F0', 'F8EEDD'
 F = 'Apple SD Gothic Neo'
 W, H, M = 10.0, 5.625, 0.6
 INSERT_AFTER = 34          # "못 한 것" 뒤
@@ -160,6 +161,78 @@ def build_s36():
     notes(s, '요청을 기능 목록이 아니라 "우리 데이터로 되는가"로 나눈 것이 정합성의 연장이다. 하나도 구현하지 않았다.')
     return s
 
+def box(s, x, y, w, h, label, sub=None, line=LINE, fill=None, label_size=13):
+    """얇은 테두리 상자 + 가운데 글씨. fill 없으면 채움 없음"""
+    sh = s.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(x), Inches(y), Inches(w), Inches(h))
+    if fill: sh.fill.solid(); sh.fill.fore_color.rgb = rgb(fill)
+    else: sh.fill.background()
+    sh.line.color.rgb = rgb(line); sh.line.width = Pt(0.75); sh.shadow.inherit = False
+    runs = [(label, {'size': label_size, 'bold': True, 'color': INK})]
+    if sub: runs = [(label + '\n', {'size': label_size, 'bold': True, 'color': INK}), (sub, {'size': 10, 'color': INK2})]
+    text(s, x + 0.1, y, w - 0.2, h, runs, align='c', spacing=1.15)
+    return sh
+
+def arrow(s, x, y, w, h):
+    sh = s.shapes.add_shape(MSO_SHAPE.RIGHT_ARROW, Inches(x), Inches(y), Inches(w), Inches(h))
+    sh.fill.solid(); sh.fill.fore_color.rgb = rgb(TEAL); sh.line.fill.background(); sh.shadow.inherit = False
+    return sh
+
+# ---------- 앞 ① · 교대할 때 무슨 일이 일어나나 (도메인 0) ----------
+def build_front1():
+    s = new_slide(2, '', '교대할 때 무슨 일이 일어나나', '간호사는 하루 세 번 교대한다. 나가는 사람이 들어오는 사람에게 환자 상태를 넘긴다. 이걸 "인계"라고 한다')
+    # 그림: [밤 근무 간호사] --인계--> [아침 근무 간호사]
+    y, bh, bw = 1.5, 1.0, 2.3
+    box(s, M, y, bw, bh, '밤 근무 간호사', '환자를 밤새 봤다')
+    arrow(s, M + bw + 0.25, y + bh / 2 - 0.16, W - 2 * M - 2 * bw - 0.5, 0.32)
+    text(s, M + bw + 0.25, y - 0.02, W - 2 * M - 2 * bw - 0.5, 0.3, '인계', size=13, bold=True, color=TEAL, align='c')
+    text(s, M + bw + 0.25, y + bh / 2 + 0.2, W - 2 * M - 2 * bw - 0.5, 0.3, '환자 상태와 주의사항을 말로, 글로 넘긴다', size=10, color=INK2, align='c')
+    box(s, W - M - bw, y, bw, bh, '아침 근무 간호사', '이제부터 이 환자를 본다')
+    # 문제 두 줄
+    py = 2.85
+    hr(s, M, py, W - 2 * M)
+    text(s, M, py + 0.12, 0.4, 0.7, '1', size=13, bold=True, color=AMBER)
+    text(s, M + 0.42, py + 0.12, W - 2 * M - 0.5, 0.7,
+         [('넘겼다는 기록은 남는다. 받았다는 기록은 없다.\n', {'size': 12.5, 'bold': True, 'color': INK}),
+          ('나중에 "들었다 / 못 들었다"가 갈려도 확인할 데가 없다', {'size': 10.5, 'color': INK2})], spacing=1.15)
+    py2 = py + 0.95
+    hr(s, M, py2, W - 2 * M)
+    text(s, M, py2 + 0.12, 0.4, 0.7, '2', size=13, bold=True, color=AMBER)
+    text(s, M + 0.42, py2 + 0.12, W - 2 * M - 0.5, 0.7,
+         [('누가 못 나오면, 수간호사가 표를 고치고 메신저로 다시 알린다.\n', {'size': 12.5, 'bold': True, 'color': INK}),
+          ('지금 배정이 무엇인지, 왜 바뀌었는지가 남지 않는다', {'size': 10.5, 'color': INK2})], spacing=1.15)
+    foot(s, '한 팀의 책임 간호사를 "차지"라고 부른다. 인계는 차지가 쓰고 다음 근무의 차지가 받는다. 이 발표에 필요한 말은 이게 전부다 [C]')
+    notes(s, '도메인 모르는 사람 기준 첫 장. 교대·인계·차지 세 단어만 소개한다.')
+    return s
+
+# ---------- 앞 ② · 그래서 이 서비스는 세 가지를 한다 ----------
+def build_front2():
+    s = new_slide(3, '', '그래서 이 서비스는 세 가지를 한다', None)
+    steps = [
+        ('1', '정한다', '그날 누가 어느 환자의\n인계를 맡는지', '수간호사'),
+        ('2', '넘긴다', '병동이 정한 필수 항목이\n비면 넘길 수 없다', '차지'),
+        ('3', '확인한다', '받은 사람이 핵심을 자기 말로\n요약해야 \'확인\'이 된다', '다음 근무 차지'),
+    ]
+    gap, y, h = 0.3, 1.2, 2.0
+    w = (W - 2 * M - gap * 2) / 3
+    for i, (n, t, d, who) in enumerate(steps):
+        x = M + i * (w + gap)
+        sh = s.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(x), Inches(y), Inches(w), Inches(h))
+        sh.fill.background(); sh.line.color.rgb = rgb(LINE); sh.line.width = Pt(0.75); sh.shadow.inherit = False
+        text(s, x + 0.2, y + 0.12, 1, 0.5, n, size=26, bold=True, color=TEAL, valign='t')
+        text(s, x + 0.2, y + 0.62, w - 0.4, 0.36, t, size=15, bold=True, color=INK, valign='t')
+        text(s, x + 0.2, y + 1.0, w - 0.4, 0.62, d, size=10.5, color=INK2, valign='t', spacing=1.2)
+        text(s, x + 0.2, y + 1.62, w - 0.4, 0.26, who, size=9.5, color=MUTED, valign='t')
+        if i < 2: arrow(s, x + w + 0.04, y + h / 2 - 0.1, gap - 0.08, 0.2)
+    by = y + h + 0.3
+    sh = s.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(M), Inches(by), Inches(W - 2 * M), Inches(0.72))
+    sh.fill.solid(); sh.fill.fore_color.rgb = rgb(AMBER_SOFT); sh.line.fill.background(); sh.shadow.inherit = False
+    text(s, M + 0.24, by, W - 2 * M - 0.48, 0.72,
+         [('누가 못 나오면 1로 돌아가 다시 정한다.  ', {'size': 12, 'bold': True, 'color': INK}),
+          ('바뀐 내용은 당사자 화면에 바로 뜨고, 왜 바꿨는지가 같이 남는다', {'size': 10.5, 'color': INK2})])
+    foot(s, '하지 않는 것: 근무표 만들기 · 병원 전산(EMR) 연동 · 실제 환자정보 · 의학적 판단')
+    notes(s, '세 동사만 기억시키면 뒤 화면이 전부 이 셋 중 하나로 보인다.')
+    return s
+
 def move_last_to(index):
     lst = prs.slides._sldIdLst
     el = list(lst)[-1]; lst.remove(el); lst.insert(index, el)
@@ -168,7 +241,30 @@ def has_title(sl, title):
     return any(sh.has_text_frame and sh.text_frame.text.strip() == title for sh in sl.shapes)
 
 IN = 914400
-if MODE == 'insert':
+def renumber_all():
+    """오른쪽 아래 숫자 상자를 순서대로 다시 매긴다(표지·감사합니다 장엔 상자가 없다)"""
+    n = 0
+    for idx, sl in enumerate(prs.slides, 1):
+        for sh in sl.shapes:
+            if sh.has_text_frame and sh.text_frame.text.strip().isdigit() and sh.left / IN > 8.5 and sh.top / IN > 5.0:
+                for para in sh.text_frame.paragraphs:
+                    for r in para.runs: r.text = ''
+                sh.text_frame.paragraphs[0].runs[0].text = str(idx); n += 1
+    return n
+
+if MODE == 'front':
+    if len(prs.slides) != 38:
+        sys.exit('중단: 38장을 기대했는데 %d 장이다' % len(prs.slides))
+    if not has_title(prs.slides[1], '목차'):
+        sys.exit('중단: 2장이 목차가 아니다')
+    build_front1(); move_last_to(1)
+    build_front2(); move_last_to(2)
+    lst = prs.slides._sldIdLst
+    toc = list(lst)[3]; lst.remove(toc); lst.insert(4, toc)      # 목차를 ③ 뒤로
+    n = renumber_all()
+    prs.save(PPTX)
+    print('저장 → %s  (%d 장 · 페이지 번호 %d 곳 재부여)' % (PPTX, len(prs.slides), n))
+elif MODE == 'insert':
     if len(prs.slides) != 36:
         sys.exit('중단: 36장을 기대했는데 %d 장이다. 이미 삽입됐거나 구조가 바뀌었다' % len(prs.slides))
     build_s35(); move_last_to(INSERT_AFTER)

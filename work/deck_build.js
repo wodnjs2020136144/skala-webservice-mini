@@ -205,19 +205,47 @@ function annotated(sec, title, sub, imgId, callouts, opt) {
   s.addNotes("첫 마디: 근무표는 누가 나오는지까지만 말합니다. 그 다음 고리가 비어 있습니다.");
 }
 
-/* 목차 */
+/* 30라운드 — 도메인 0 인 사람이 3장 안에 시스템을 읽게 하는 앞 2장. 사용자 편집본에는 tools/insert_session_slides.py --front 로 넣었다 */
 {
-  const s = slide(); titleBar(s, null, "목차", null);
-  const items = [["01", "무엇을 만들었나"], ["02", "무엇이 불편했고 어떻게 풀었나"], ["03", "누가 쓰고, 어디까지 보나"], ["04", "화면 흐름"],
-                 ["05", "화면마다 도는 API"], ["06", "데이터를 나눈 방법"], ["07", "API 24개와 막는 규칙"], ["08", "고민한 것, 못 한 것"]];
-  items.forEach((it, i) => {
-    const col = i < 4 ? 0 : 1, row = i % 4;
-    const x = M + col * (W - 2 * M) / 2 + (col ? 0.3 : 0), y = 1.3 + row * 0.86;
-    s.addText(it[0], { x, y, w: 0.5, h: 0.5, fontFace: F, fontSize: 13, bold: true, color: TEAL, valign: "middle", margin: 0, isTextBox: true });
-    s.addText(it[1], { x: x + 0.5, y, w: (W - 2 * M) / 2 - 0.9, h: 0.5, fontFace: F, fontSize: 13.5, color: INK, valign: "middle", margin: 0, isTextBox: true });
-    hr(s, x, y + 0.56, (W - 2 * M) / 2 - 0.4, LINE, 0.5);
+  const s = slide(); titleBar(s, null, "교대할 때 무슨 일이 일어나나", "간호사는 하루 세 번 교대한다. 나가는 사람이 들어오는 사람에게 환자 상태를 넘긴다. 이걸 \"인계\"라고 한다");
+  const y = 1.5, bh = 1.0, bw = 2.3, aw = W - 2 * M - 2 * bw - 0.5;
+  const bx = (x, t, d) => {
+    s.addShape(p.ShapeType.rect, { x, y, w: bw, h: bh, fill: { type: "none" }, line: { color: LINE, width: 0.75 } });
+    s.addText([{ text: t + "\n", options: { bold: true, fontSize: 13, color: INK } }, { text: d, options: { fontSize: 10, color: INK2 } }], { x: x + 0.1, y, w: bw - 0.2, h: bh, fontFace: F, align: "center", valign: "middle", margin: 0, isTextBox: true, lineSpacingMultiple: 1.15 });
+  };
+  bx(M, "밤 근무 간호사", "환자를 밤새 봤다");
+  s.addShape(p.ShapeType.rightArrow, { x: M + bw + 0.25, y: y + bh / 2 - 0.16, w: aw, h: 0.32, fill: { color: TEAL }, line: { type: "none" } });
+  s.addText("인계", { x: M + bw + 0.25, y: y - 0.02, w: aw, h: 0.3, fontFace: F, fontSize: 13, bold: true, color: TEAL, align: "center", margin: 0, isTextBox: true });
+  s.addText("환자 상태와 주의사항을 말로, 글로 넘긴다", { x: M + bw + 0.25, y: y + bh / 2 + 0.2, w: aw, h: 0.3, fontFace: F, fontSize: 10, color: INK2, align: "center", margin: 0, isTextBox: true });
+  bx(W - M - bw, "아침 근무 간호사", "이제부터 이 환자를 본다");
+  const rows = [["1", "넘겼다는 기록은 남는다. 받았다는 기록은 없다.", "나중에 \"들었다 / 못 들었다\"가 갈려도 확인할 데가 없다"],
+                ["2", "누가 못 나오면, 수간호사가 표를 고치고 메신저로 다시 알린다.", "지금 배정이 무엇인지, 왜 바뀌었는지가 남지 않는다"]];
+  rows.forEach((r, i) => {
+    const py = 2.85 + i * 0.95; hr(s, M, py, W - 2 * M, LINE, 0.5);
+    s.addText(r[0], { x: M, y: py + 0.12, w: 0.4, h: 0.7, fontFace: F, fontSize: 13, bold: true, color: AMBER, margin: 0, isTextBox: true });
+    s.addText([{ text: r[1] + "\n", options: { bold: true, fontSize: 12.5, color: INK } }, { text: r[2], options: { fontSize: 10.5, color: INK2 } }], { x: M + 0.42, y: py + 0.12, w: W - 2 * M - 0.5, h: 0.7, fontFace: F, margin: 0, isTextBox: true, lineSpacingMultiple: 1.15 });
   });
-  s.addText("배점이 큰 곳은 06 데이터 모델(20)과 07 API(20)", { x: M, y: H - 0.72, w: W - 2 * M, h: 0.26, fontFace: F, fontSize: 9.5, color: MUTED, margin: 0, isTextBox: true });
+  foot(s, "한 팀의 책임 간호사를 \"차지\"라고 부른다. 인계는 차지가 쓰고 다음 근무의 차지가 받는다. 이 발표에 필요한 말은 이게 전부다 [C]");
+  s.addNotes("도메인 모르는 사람 기준 첫 장. 교대·인계·차지 세 단어만 소개한다.");
+}
+{
+  const s = slide(); titleBar(s, null, "그래서 이 서비스는 세 가지를 한다", null);
+  const steps = [["1", "정한다", "그날 누가 어느 환자의\n인계를 맡는지", "수간호사"], ["2", "넘긴다", "병동이 정한 필수 항목이\n비면 넘길 수 없다", "차지"], ["3", "확인한다", "받은 사람이 핵심을 자기 말로\n요약해야 '확인'이 된다", "다음 근무 차지"]];
+  const gap = 0.3, y = 1.2, h = 2.0, w = (W - 2 * M - gap * 2) / 3;
+  steps.forEach((st, i) => {
+    const x = M + i * (w + gap);
+    s.addShape(p.ShapeType.rect, { x, y, w, h, fill: { type: "none" }, line: { color: LINE, width: 0.75 } });
+    s.addText(st[0], { x: x + 0.2, y: y + 0.12, w: 1, h: 0.5, fontFace: F, fontSize: 26, bold: true, color: TEAL, margin: 0, isTextBox: true });
+    s.addText(st[1], { x: x + 0.2, y: y + 0.62, w: w - 0.4, h: 0.36, fontFace: F, fontSize: 15, bold: true, color: INK, margin: 0, isTextBox: true });
+    s.addText(st[2], { x: x + 0.2, y: y + 1.0, w: w - 0.4, h: 0.62, fontFace: F, fontSize: 10.5, color: INK2, margin: 0, isTextBox: true, lineSpacingMultiple: 1.2 });
+    s.addText(st[3], { x: x + 0.2, y: y + 1.62, w: w - 0.4, h: 0.26, fontFace: F, fontSize: 9.5, color: MUTED, margin: 0, isTextBox: true });
+    if (i < 2) s.addShape(p.ShapeType.rightArrow, { x: x + w + 0.04, y: y + h / 2 - 0.1, w: gap - 0.08, h: 0.2, fill: { color: TEAL }, line: { type: "none" } });
+  });
+  const by = y + h + 0.3;
+  s.addShape(p.ShapeType.rect, { x: M, y: by, w: W - 2 * M, h: 0.72, fill: { color: AMBER_SOFT }, line: { type: "none" } });
+  s.addText([{ text: "누가 못 나오면 1로 돌아가 다시 정한다.  ", options: { bold: true, fontSize: 12, color: INK } }, { text: "바뀐 내용은 당사자 화면에 바로 뜨고, 왜 바꿨는지가 같이 남는다", options: { fontSize: 10.5, color: INK2 } }], { x: M + 0.24, y: by, w: W - 2 * M - 0.48, h: 0.72, fontFace: F, valign: "middle", margin: 0, isTextBox: true });
+  foot(s, "하지 않는 것: 근무표 만들기 · 병원 전산(EMR) 연동 · 실제 환자정보 · 의학적 판단");
+  s.addNotes("세 동사만 기억시키면 뒤 화면이 전부 이 셋 중 하나로 보인다.");
 }
 
 /* ============================================================ 01 */
@@ -245,6 +273,21 @@ function annotated(sec, title, sub, imgId, callouts, opt) {
     { x: M, y: 3.78, w: W - 2 * M, h: 0.3, fontFace: F, valign: "middle", margin: 0, isTextBox: true });
   foot(s, "제출물 3종: 개요 PDF, API 명세(.yml), 데이터 모델(.dbml)");
   s.addNotes("정의 한 문장을 그대로 읽고, '하지 않은 것'으로 범위를 먼저 닫는다.");
+}
+
+/* 목차 */
+{
+  const s = slide(); titleBar(s, null, "목차", null);
+  const items = [["01", "무엇을 만들었나"], ["02", "무엇이 불편했고 어떻게 풀었나"], ["03", "누가 쓰고, 어디까지 보나"], ["04", "화면 흐름"],
+                 ["05", "화면마다 도는 API"], ["06", "데이터를 나눈 방법"], ["07", "API 24개와 막는 규칙"], ["08", "고민한 것, 못 한 것"]];
+  items.forEach((it, i) => {
+    const col = i < 4 ? 0 : 1, row = i % 4;
+    const x = M + col * (W - 2 * M) / 2 + (col ? 0.3 : 0), y = 1.3 + row * 0.86;
+    s.addText(it[0], { x, y, w: 0.5, h: 0.5, fontFace: F, fontSize: 13, bold: true, color: TEAL, valign: "middle", margin: 0, isTextBox: true });
+    s.addText(it[1], { x: x + 0.5, y, w: (W - 2 * M) / 2 - 0.9, h: 0.5, fontFace: F, fontSize: 13.5, color: INK, valign: "middle", margin: 0, isTextBox: true });
+    hr(s, x, y + 0.56, (W - 2 * M) / 2 - 0.4, LINE, 0.5);
+  });
+  s.addText("배점이 큰 곳은 06 데이터 모델(20)과 07 API(20)", { x: M, y: H - 0.72, w: W - 2 * M, h: 0.26, fontFace: F, fontSize: 9.5, color: MUTED, margin: 0, isTextBox: true });
 }
 
 /* 용어 — 도메인을 모르는 사람이 여기서 따라붙는다 */
