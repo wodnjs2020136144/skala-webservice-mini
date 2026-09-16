@@ -40,14 +40,16 @@
     }
     var cards = db.users.slice().sort(function (a, b) { return (a.user_type === 'HEAD_NURSE' ? 0 : 1) - (b.user_type === 'HEAD_NURSE' ? 0 : 1) || a.id.localeCompare(b.id); }).map(function (u) {
       var head = u.user_type === 'HEAD_NURSE';
-      return '<button class="ucard' + (head ? ' head' : '') + '" data-act="pick" data-id="' + u.id + '"><div class="nm">' + h(u.name) + '</div><div class="rl">' + (head ? '수간호사 · 5병동' : '간호사 · ' + h(A().teamOf(u))) + ' <span class="code">' + u.id + '</span></div><div class="sh">' + shifts(u) + '</div></button>';
+      var order = { H001: 1, N003: 2, N004: 3, N006: 4 }[u.id];
+      return '<button class="ucard' + (head ? ' head' : '') + '" data-act="pick" data-id="' + u.id + '">' + (order ? '<span class="order" title="시연 순서">' + order + '</span>' : '') + '<span class="avatar ' + A().avatarCls(u) + '">' + h(A().initials(u)) + '</span><div><div class="nm">' + h(u.name) + '</div><div class="rl">' + (head ? '수간호사 · 5병동' : '간호사 · ' + h(A().teamOf(u))) + ' <span class="code">' + u.id + '</span></div><div class="sh">' + shifts(u) + '</div></div></button>';
     }).join('');
     return {
       html: '<div class="login"><div class="left"><h1>너와나의인계고리</h1><p>근무표가 끝나는 지점에서 시작합니다.<br>누가 인계를 맡았고 누가 받아 확인했는지 한 줄로 잇습니다.</p><div class="bar"></div><ul><li>· 오늘 내 역할과 우리 팀 환자</li><li>· 병동 공통 인계 항목</li><li>· 받았다는 기록</li></ul></div>' +
         '<div class="right"><h2>로그인 — 데모에서는 사용자를 고릅니다</h2><div class="hint">실제 서비스는 병원 사번으로 로그인합니다(401 시 "사번 또는 비밀번호가 올바르지 않습니다").<br>인증은 <b>외부 시스템을 가정</b>해 API 명세 범위 밖입니다. 인가는 <span class="code">users.user_type</span> · 소속 병동 · 인계 담당 여부로 판정합니다.<br><b>모든 인물·입원 건은 가상입니다.</b></div>' +
         '<div class="ucards">' + cards + '</div>' +
-        '<div class="warn">시연 순서 — <b>김수진</b>(배정) → <b>한서윤</b>(작성·전달) → <b>정하늘</b>(요약·확인) → <b>이민혜</b>(열람만 · 403) → <b>김수진</b>(한가람 결원 재배정 4단계 · 변경 이력)</div></div></div>',
-      bind: function (root) { onAct(root, { pick: function (el) { S().setUser(el.dataset.id); A().go(S().me().user_type === 'HEAD_NURSE' ? '#/dashboard' : '#/me'); } }); }
+        '<div class="warn">시연 순서 — ① <b>김수진</b>(배정) → ② <b>한서윤</b>(작성·전달) → ③ <b>정하늘</b>(요약·확인) → ④ <b>최서연</b>(열람만 · 403) → ① <b>김수진</b>(한가람 결원 재배정 4단계 · 변경 이력) → ④ <b>최서연</b>(후속 인계 확인)</div>' +
+        '<div class="bar2"><span class="sp"></span><button class="btn-ghost reset" data-act="reset">데모 초기화 (시드 복원)</button></div></div></div>',
+      bind: function (root) { onAct(root, { pick: function (el) { S().setUser(el.dataset.id); A().go(S().me().user_type === 'HEAD_NURSE' ? '#/dashboard' : '#/me'); }, reset: function () { A().resetDemo(); } }); }
     };
   };
 
@@ -61,10 +63,10 @@
       return '<tr><td class="bed">' + h(a.user_name) + '</td><td>' + h(a.team_name || '—') + ' · ' + h(a.role_name || '미배정') + '</td><td>' + A().dLabel(a.work_date) + ' ' + A().shiftTag(a.shift_code, true) + '</td><td>' + h(a.absence_reason || '—') + '</td><td class="act"><a class="btn" href="#/reassign/' + a.shift_assignment_id + '">재배정</a></td></tr>';
     }).join('') || '<tr><td colspan="5" class="muted" style="text-align:center;padding:28px">대체 전 결원이 없습니다</td></tr>';
     return { html: '<div class="wrap"><h1>병동 대시보드</h1><div class="sub">' + A().dLabel(d.date, true) + ' 기준 · <span class="code">GET /wards/5/dashboard?date=' + d.date + '</span></div><div id="err"></div>' +
-      '<div class="tiles"><div class="tile"><div class="lb">오늘 근무자 수</div><div class="vl">' + total + '<small>명</small></div><div class="sub2">' + d.shift_counts.map(function (x) { return x.shift_code + ' ' + x.headcount; }).join(' · ') + ' · ACTIVE 만</div><div class="src">shift_counts[]</div></div>' +
-      '<div class="tile"><div class="lb">역할별 배정 인원</div><div class="vl">' + Object.keys(roles).filter(function (k) { return k !== '미배정'; }).length + '<small>역할</small></div><div class="sub2">' + h(roleStr) + '</div><div class="src">role_counts[] · 필요 인원 분모 없음</div></div>' +
-      '<div class="tile' + (d.unconfirmed_handover_count ? '' : '') + '"><div class="lb">미확인 인계 건수</div><div class="vl">' + d.unconfirmed_handover_count + '<small>건</small></div><div class="sub2">status = SENT · 날짜 무관 · SUPERSEDED 자동 제외</div><div class="src">unconfirmed_handover_count</div></div>' +
-      '<div class="tile' + (d.uncovered_absences.length ? ' alert' : '') + '"><div class="lb">결원 — 대체 전</div><div class="vl">' + d.uncovered_absences.length + '<small>건</small></div><div class="sub2">ABSENT 이고 covered_at 없음</div><div class="src">uncovered_absences[]</div></div></div>' +
+      '<div class="tiles"><div class="tile"><div class="lb"><span class="ic"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 4.5a3.2 3.2 0 0 1 0 7"/><path d="M18 14c2 .6 3 2.4 3 5"/></svg></span>오늘 근무자 수</div><div class="vl">' + total + '<small>명</small></div><div class="sub2">' + d.shift_counts.map(function (x) { return x.shift_code + ' ' + x.headcount; }).join(' · ') + ' · ACTIVE 만</div><div class="src">shift_counts[]</div></div>' +
+      '<div class="tile"><div class="lb"><span class="ic"><svg viewBox="0 0 24 24"><path d="M12 3l2.6 5.3 5.9.9-4.2 4.1 1 5.8L12 16.3 6.7 19.1l1-5.8L3.5 9.2l5.9-.9z"/></svg></span>역할별 배정 인원</div><div class="vl">' + Object.keys(roles).filter(function (k) { return k !== '미배정'; }).length + '<small>역할</small></div><div class="sub2">' + h(roleStr) + '</div><div class="src">role_counts[] · 필요 인원 분모 없음</div></div>' +
+      '<div class="tile"><div class="lb"><span class="ic"><svg viewBox="0 0 24 24"><path d="M4 4h16v12H8l-4 4z"/><path d="M8 9h8M8 12h5"/></svg></span>미확인 인계 건수</div><div class="vl">' + d.unconfirmed_handover_count + '<small>건</small></div><div class="sub2">status = SENT · 날짜 무관 · SUPERSEDED 자동 제외</div><div class="src">unconfirmed_handover_count</div></div>' +
+      '<div class="tile' + (d.uncovered_absences.length ? ' alert' : '') + '"><div class="lb"><span class="ic"><svg viewBox="0 0 24 24"><path d="M12 3l9.5 17h-19z"/><path d="M12 10v4M12 17.5v.5"/></svg></span>결원 — 대체 전</div><div class="vl">' + d.uncovered_absences.length + '<small>건</small></div><div class="sub2">ABSENT 이고 covered_at 없음</div><div class="src">uncovered_absences[]</div></div></div>' +
       '<div class="card"><div class="card-h"><span class="date" style="font-size:17px">대체 전 결원</span><span class="sp"></span>' + (d.uncovered_absences.length ? '<span class="flag">재배정 필요</span>' : '') + '</div><table><thead><tr><th style="width:150px">근무자</th><th style="width:140px">팀 · 역할</th><th style="width:260px">근무</th><th>결원 사유</th><th style="width:140px"></th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
       '<div class="warn">결원은 <b>수간호사가 등록</b>합니다. 자동 감지가 아닙니다. 대체 완료도 <b>"대체 완료로 확인"</b> 버튼으로 사람이 확정합니다.</div>' +
       '<div class="bar2" style="flex-wrap:wrap"><a class="btn sec" href="#/shifts">확정 근무 등록</a><a class="btn sec" href="#/board">역할 · 인계 담당 배정</a><a class="btn sec" href="#/template">병동 인계 항목 관리</a><a class="btn sec" href="#/board">결원 등록 · 재배정 (배정 보드에서)</a><a class="btn sec" href="#/history">변경 이력</a></div>' +
@@ -130,7 +132,7 @@
       }
       var act = abs ? '<a class="btn" href="#/reassign/' + r.shift_assignment_id + '">결원 재배정</a>' : '<a class="btn sec" href="#/reassign/' + r.shift_assignment_id + '">결원 등록</a>';
       return '<tr><td class="bed">' + h(r.user_name) + '</td><td>' + roleCell + '</td><td>' + h(r.team_name || '—') + '</td><td>' + chips + '</td><td class="act">' + act + '</td></tr>';
-    }).join('') || '<tr><td colspan="5" class="muted" style="text-align:center;padding:28px">이 근무조에 등록된 근무가 없습니다 — 확정 근무 등록에서 먼저 등록합니다</td></tr>';
+    }).join('') || '<tr><td colspan="5" style="padding:0"><div class="empty"><div class="ttl">이 근무조에 등록된 근무가 없습니다</div><a class="next" href="#/shifts">다음 할 일 — 확정 근무 등록에서 먼저 등록합니다</a></div></td></tr>';
     return {
       html: '<div class="wrap">' + crumb('병동 대시보드', '#/dashboard', '역할 · 인계 담당 배정') + '<h1>역할 · 인계 담당 배정</h1><div class="sub">저장하면 간호사 화면에 즉시 반영됩니다. 별도 게시 단계가 없습니다.</div><div id="err"></div>' +
         '<div class="bar2"><select class="sel" id="bDate">' + dateOpts(st.date) + '</select><select class="sel" id="bShift">' + shiftOpts(st.shift) + '</select><span class="sp"></span><span style="font-size:14px;color:#5B6B70">역할별 배정 인원 &nbsp;<b style="color:#1E2B30">' + (Object.keys(counts).map(function (k) { return k + ' ' + counts[k]; }).join(' · ') || '—') + '</b></span></div>' +
@@ -259,8 +261,8 @@
     var cards = r.shifts.map(function (s) {
       var anyOwner = s.team_stays.some(function (t) { return t.is_handover_owner; }), anyHo = s.team_stays.some(function (t) { return t.handover_status !== 'NONE' || t.outgoing_handover_id; });
       var body;
-      if (!s.team_stays.length) body = '<div class="empty"><div class="ic">🛏</div><div class="ttl">우리 팀 재원 건이 없습니다</div></div>';
-      else if (!anyOwner && !anyHo && s.role_name === '차지') body = '<div class="empty"><div class="ic">🗂</div><div class="ttl">인계 담당 입원 건이 아직 지정되지 않았습니다</div><div class="dsc">근무와 역할(차지)은 확정되었습니다. 우리 팀 환자는 입·퇴원으로 매일 바뀌므로, 인계 담당 입원 건은 수간호사가 지정하면 여기에 표시됩니다.</div></div>';
+      if (!s.team_stays.length) body = '<div class="empty"><div class="ic">🛏</div><div class="ttl">우리 팀 재원 건이 없습니다</div><span class="next">입원이 생기면 자동으로 표시됩니다</span></div>';
+      else if (!anyOwner && !anyHo && s.role_name === '차지') body = '<div class="empty"><div class="ic">🗂</div><div class="ttl">인계 담당 입원 건이 아직 지정되지 않았습니다</div><div class="dsc">근무와 역할(차지)은 확정되었습니다. 우리 팀 환자는 입·퇴원으로 매일 바뀌므로, 인계 담당 입원 건은 수간호사가 지정하면 여기에 표시됩니다.</div><span class="next">다음 할 일 — 수간호사가 배정 보드에서 지정합니다</span></div>';
       else {
         var rows = s.team_stays.map(function (t) {
           var acts = [], note = A().dShort(t.admitted_at) + ' 입원' + (t.admitted_at.slice(0, 10) === today ? ' · 신규' : '');
@@ -278,7 +280,7 @@
           '<div style="padding:14px 24px;font-size:14px;color:#5B6B70;background:#FAFCFC;border-top:1px solid #EDF2F4">' + (anyOwner ? '이 근무의 <b>인계 담당</b>입니다. 작성은 다음 근무 팀 차지에게, 확인은 앞 근무에서 받은 인계에 합니다.' : '액팅은 우리 팀 인계를 <b>열람</b>합니다. 인계 작성·확인은 이 근무의 <b>' + h(s.team_name) + ' 차지(인계 담당)</b>가 합니다.') + '</div>';
       }
       return '<div class="card"><div class="card-h' + (s.work_date === today ? ' today' : '') + '"><span class="date">' + A().dLabel(s.work_date).replace(/\(.\)$/, '') + '</span><span class="dow">' + A().dow(s.work_date) + (s.work_date === today ? ' · 오늘' : '') + '</span>' + A().shiftTag(s.shift_code) + A().roleBadge(s.role_name) + '<span class="role none">' + h(s.team_name || '—') + '</span><span class="sp"></span>' + (s.is_absent ? '<span class="flag" style="color:#B3261E;background:#FFEDEE;border-color:#F5C6C4">결원 (ABSENT)</span>' : '') + (s.has_reassignment ? '<span class="flag">결원 재배정 이력 있음</span>' : '') + '</div>' + body + '</div>';
-    }).join('') || '<div class="card"><div class="empty"><div class="ttl">오늘부터 다음 근무까지 등록된 근무가 없습니다</div></div></div>';
+    }).join('') || '<div class="card"><div class="empty"><div class="ic">📅</div><div class="ttl">오늘부터 다음 근무까지 등록된 근무가 없습니다</div><span class="next">다음 할 일 — 수간호사가 확정 근무 등록에서 등록합니다</span></div></div>';
     return {
       html: '<div class="wrap"><h1>내 근무 · 역할 · 우리 팀 환자</h1><div class="sub">' + A().dLabel(r.from, true) + ' ~ ' + A().dLabel(r.to) + ' · 오늘부터 다음 근무까지 표시됩니다 · <span class="code">GET /me/shifts</span></div><div id="err"></div>' + cards + '<div class="foot"><a href="#/myhistory">내 인계 이력 보기</a></div></div>',
       bind: function (root) { onAct(root, { create: function (el) { var r = I('createHandover', { body: { inpatient_stay_id: +el.dataset.stay, from_handover_assignment_id: +el.dataset.ha } }); A().go('#/handover/' + r.handover_id + '/write'); } }); }

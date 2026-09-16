@@ -6,11 +6,16 @@
 <link rel="stylesheet" href="css/base.css">
 </head>
 <body>
-<div class="top" id="top"></div>
-<div id="view"></div>
+<div class="app">
+  <aside class="side" id="side"></aside>
+  <div class="main">
+    <header class="topbar" id="topbar"></header>
+    <div id="view"></div>
+  </div>
+</div>
 <div class="apilog" id="apilog">
-  <div class="bar" id="apilogBar"><span class="lbl">API</span><span class="code" id="apilogLast">— 아직 호출 없음. 버튼을 누르면 어느 오퍼레이션이 어떤 상태코드로 응답했는지 여기에 남습니다</span><span class="hint">클릭하면 최근 호출 펼침 · 가상 데이터 · 실제 서버 없음</span></div>
   <div class="body" id="apilogBody"></div>
+  <div class="bar" id="apilogBar"><span class="lbl">API</span><span class="code" id="apilogLast">아직 호출 없음 — 버튼을 누르면 어느 오퍼레이션이 어떤 상태코드로 응답했는지 여기에 남습니다</span><span class="hint">클릭 펼침</span></div>
 </div>
 <script src="js/seed.js"></script>
 <script src="js/store.js"></script>
