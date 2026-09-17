@@ -19,12 +19,16 @@
  *    6) 표·카드는 개조식. 완결문은 한 장에 한두 문장, 설계 판단을 말하는 자리에만
  *    7) 기호 다이어트 — "—" 0, "→" 는 흐름 제목에만, "~니까요" 없음
  *
- * 디자인 (31라운드 · taste-skill 을 슬라이드로 옮긴 것 + impeccable):
- *    - 글꼴이 첫째 레버: Pretendard, 굵기로 위계 (제목 ExtraBold · 부제 Light · 본문 Regular · 라벨 Medium). 큰 제목은 자간을 좁힌다
- *    - 색은 크림 바탕 + 잉크 + 청록 하나 + 앰버 하나. 빨강·초록·파랑은 화면 말풍선 범례에만
+ * 디자인 — 컨셉 「인계 노트」 (32라운드 R169 · taste-skill §4.2 가 크림+앰버+잉크를 "AI 티" 팔레트로 금지 → 색 계열을 바꿨다):
+ *    - 종이: 괘선이 아주 옅게 깔린 백지. 괘선은 그림이 아니라 선 도형(RULE_SOFT · 0.25in 간격)이라 PDF 가 무겁지 않다. 노이즈 없음
+ *    - 잉크는 차가운 회색 한 가족(INK · INK2 · MUTED). 강조는 **빨간 펜(PEN) 하나** — 큰 숫자, 핵심 셀, 활성 탭, 주의 항목
+ *      같은 장에서 두 색으로 갈랐던 곳은 굵기와 검정으로 가른다. 한 장에 항목이 전부 같은 종류면 빨강을 안 쓴다
+ *    - 채움은 메모지(MEMO) 한 장에만 — 인터뷰 원문. 나머지는 가로선으로만 나눈다
+ *    - 왼쪽 가장자리에 바인더 색인 탭 8개(= SECTIONS). 활성 탭만 빨강. 목차·바닥글·탭이 같은 배열을 읽는다
+ *    - 글꼴: Pretendard 굵기 위계(제목 ExtraBold · 부제 Light · 본문 Regular · 라벨 Medium) + 손글씨 Nanum Pen 은 곁글 6곳 상한
+ *      (인터뷰 메모지 · 요청 목록 머리 · 교대 그림 "인계" · 마지막 장 한 줄 · 인계 쓰기·받기 각주)
+ *    - 말풍선 3종은 색이 아니라 모양: API = 빨간 채움 원 · 화면 이동 = 검은 채움 원 · 예외 = 빨간 테두리 원
  *    - 같은 레이아웃을 연달아 반복하지 않는다: 점 목록은 왼쪽 레일형, 표·캡처는 전폭형
- *    - 카드 테두리·채움은 도식(교대 그림 · 세 동작)에만. 나머지는 가로선으로만 나눈다
- *    - 섹션 이름은 SECTIONS 한 배열 — 목차와 바닥글이 같은 배열을 읽는다(라벨 불일치를 구조로 막는다)
  *
  * 화면 말풍선은 assets/anchors.json 의 좌표를 쓴다(촬영 때 같이 잰다 — tools/shoot_prelude.js).
  */
@@ -46,11 +50,12 @@ try {
 } catch (e) { /* PowerPoint 가 없거나 응답 없음 — 진행 */ }
 
 /* ---------- 토큰 ---------- */
-const PAPER = "FBF8F2", INK = "2A2926", INK2 = "55524B", MUTED = "8A867C", LINE = "E6E0D4";
-const TEAL = "1F8A7E", AMBER = "B9772E", AMBER_SOFT = "F8EEDD", WHITE = "FFFFFF";
-const K_API = "B3261E", K_NAV = "2E7D4F", K_EXC = "2F5FA8";   // 말풍선 범례 전용
+const PAPER = "F9F8F4", INK = "2B333C", INK2 = "5A6069", MUTED = "8C9199", LINE = "E4E2DB";
+const PEN = "C24A31", MEMO = "FFF3B3", TAB_OFF = "ECEAE3", WHITE = "FFFFFF";   // 강조는 PEN 하나. MEMO 는 인터뷰 원문 한 장에만
 const FX = "Pretendard ExtraBold", FSB = "Pretendard SemiBold", FM = "Pretendard Medium", F = "Pretendard", FL = "Pretendard Light";
+const HAND = "Nanum Pen";   // 손글씨. 곁글 6곳 상한 — 머리 주석 참조
 const MONO = "Menlo";
+const RULE_SOFT = "EFEDE7";   // 괘선. LINE 보다 옅다
 const W = 10, H = 5.625, M = 0.6;
 const TR = -0.6;   // 제목 자간(pt). 큰 제목은 좁힌다
 
@@ -68,26 +73,45 @@ let pageNo = 0;
 /* ---------- 공통 ---------- */
 function slide(sec, opt) {
   const s = p.addSlide(); s.background = { color: PAPER }; pageNo += 1;
+  for (let y = 0.9; y < H - 0.7; y += 0.25) hr(s, M, y, W - 2 * M, RULE_SOFT, 0.5);   // 괘선 종이
   if (!(opt && opt.bare)) {
     s.addText(String(pageNo), { x: W - M - 0.5, y: H - 0.34, w: 0.5, h: 0.2, fontFace: FM, fontSize: 8, color: MUTED, align: "right", margin: 0, isTextBox: true });
     if (sec) s.addText(sec + "  " + SEC[sec], { x: M, y: H - 0.34, w: 5, h: 0.2, fontFace: FM, fontSize: 8, color: MUTED, margin: 0, isTextBox: true });
   }
+  if (sec) tabs(s, sec);
   return s;
 }
+/* 바인더 색인 탭 — SECTIONS 를 그대로 읽는다. 활성 탭만 빨간 펜 */
+function tabs(s, sec) {
+  SECTIONS.forEach((it, i) => {
+    const y = 0.7 + i * 0.52, on = it[0] === sec;
+    s.addShape(p.ShapeType.rect, { x: 0.08, y, w: 0.2, h: 0.46, fill: { color: on ? PEN : TAB_OFF }, line: { type: "none" } });
+    s.addText(it[0], { x: 0.08, y, w: 0.2, h: 0.46, fontFace: FM, fontSize: 7, color: on ? WHITE : MUTED, align: "center", valign: "middle", margin: 0, isTextBox: true });
+  });
+}
+/* 말풍선 배지 3종 — 색이 아니라 모양으로 가른다 */
+function badge(s, kind, x, y, d, n, fs, onImage) {
+  const fill = { color: kind === "exc" ? WHITE : (kind === "nav" ? INK : PEN) };
+  const line = kind === "exc" ? { color: PEN, width: 1.5 } : (onImage ? { color: WHITE, width: 1 } : { type: "none" });
+  s.addShape(p.ShapeType.ellipse, { x, y, w: d, h: d, fill, line });
+  if (n !== undefined) s.addText(String(n), { x, y, w: d, h: d, fontFace: FSB, fontSize: fs, color: kind === "exc" ? PEN : WHITE, align: "center", valign: "middle", margin: 0, isTextBox: true });
+}
+const kindColor = (k) => (k === "nav" ? INK : PEN);
 function hr(s, x, y, w, color, pt) { s.addShape(p.ShapeType.line, { x, y, w, h: 0, line: { color: color || LINE, width: pt || 0.5 } }); }
 function titleBar(s, title, sub) {
   s.addText(title, { x: M, y: 0.32, w: W - 2 * M, h: 0.5, fontFace: FX, fontSize: 25, color: INK, charSpacing: TR, valign: "middle", margin: 0, isTextBox: true });
   if (sub) s.addText(sub, { x: M, y: 0.88, w: W - 2 * M, h: 0.26, fontFace: FL, fontSize: 12, color: INK2, valign: "middle", margin: 0, isTextBox: true });
 }
-function foot(s, t) {
+function foot(s, t, hand) {
   hr(s, M, H - 0.62, W - 2 * M, LINE, 0.5);
-  s.addText(t, { x: M, y: H - 0.58, w: W - 2 * M, h: 0.22, fontFace: F, fontSize: 9, color: MUTED, valign: "middle", margin: 0, isTextBox: true });
+  if (hand) s.addText(t, { x: M, y: H - 0.62, w: W - 2 * M, h: 0.3, fontFace: HAND, fontSize: 15, color: INK2, valign: "middle", margin: 0, isTextBox: true });
+  else s.addText(t, { x: M, y: H - 0.58, w: W - 2 * M, h: 0.22, fontFace: F, fontSize: 9, color: MUTED, valign: "middle", margin: 0, isTextBox: true });
 }
 function pngSize(file) { const b = fs.readFileSync(file); return { w: b.readUInt32BE(16), h: b.readUInt32BE(20) }; }
 function ring(s, x, y, size) {   // "고리" 마크 — 겹친 원 두 개
   const o = size * 0.42;
-  s.addShape(p.ShapeType.ellipse, { x, y, w: size, h: size, fill: { type: "none" }, line: { color: TEAL, width: 2.5 } });
-  s.addShape(p.ShapeType.ellipse, { x: x + o, y, w: size, h: size, fill: { type: "none" }, line: { color: AMBER, width: 2.5 } });
+  s.addShape(p.ShapeType.ellipse, { x, y, w: size, h: size, fill: { type: "none" }, line: { color: INK, width: 2.5 } });
+  s.addShape(p.ShapeType.ellipse, { x: x + o, y, w: size, h: size, fill: { type: "none" }, line: { color: PEN, width: 2.5 } });
 }
 const B_NONE = { type: "none" };
 const rowBorder = (color, pt) => [B_NONE, B_NONE, { type: "solid", color: color || LINE, pt: pt || 0.5 }, B_NONE];
@@ -97,7 +121,7 @@ function tableSlide(sec, title, sub, header, rows, colW, opt) {
   opt = opt || {};
   const s = slide(sec); titleBar(s, title, sub);
   const fsz = opt.fontSize || 10.5;
-  const body = [header.map((t) => ({ text: t, options: { color: INK, fontFace: FM, fontSize: opt.headSize || 9.5, align: "left", border: rowBorder(TEAL, 1) } }))];
+  const body = [header.map((t) => ({ text: t, options: { color: INK, fontFace: FM, fontSize: opt.headSize || 9.5, align: "left", border: rowBorder(INK, 1) } }))];
   rows.forEach((r, i) => body.push(r.map((c) => {
     const o = typeof c === "object" ? c : { text: c };
     return { text: o.text, options: Object.assign({ color: o.color || INK2, fontFace: o.mono ? MONO : (o.bold ? FSB : F), fontSize: o.fontSize || fsz, align: "left", border: rowBorder(LINE, i === rows.length - 1 ? 0 : 0.5) }, o.opts || {}) };
@@ -127,7 +151,7 @@ function pointsSlide(sec, title, sub, items, opt) {
   items.forEach((it, i) => {
     const y = top + i * h;
     if (i) hr(s, x0, y, cw, LINE, 0.5);
-    s.addText(it.n, { x: x0, y, w: 0.5, h, fontFace: FL, fontSize: 24, color: it.color || TEAL, valign: "middle", margin: 0, isTextBox: true });
+    s.addText(it.n, { x: x0, y, w: 0.5, h, fontFace: FL, fontSize: 24, color: it.color || INK, valign: "middle", margin: 0, isTextBox: true });
     s.addText([{ text: it.t + "\n", options: { fontFace: FSB, color: INK, fontSize: 12 } }, { text: it.d, options: { fontFace: F, color: INK2, fontSize: 10 } }],
       { x: x0 + 0.55, y, w: cw - 0.55, h, valign: "middle", margin: 0, isTextBox: true, lineSpacingMultiple: 1.15 });
   });
@@ -167,7 +191,6 @@ function rowImages(sec, title, sub, items, footTxt, notes) {
 }
 
 /* ---------- ★ 화면 캡처 + API 말풍선 ---------- */
-const KIND = { api: K_API, nav: K_NAV, exc: K_EXC };
 function annotated(sec, title, sub, imgId, callouts, opt) {
   opt = opt || {};
   const s = slide(sec); titleBar(s, title, sub);
@@ -186,23 +209,21 @@ function annotated(sec, title, sub, imgId, callouts, opt) {
   callouts.forEach((c) => {
     const m = byN[c.n]; if (!m || !m.w) return;
     const bx = ix + (m.x / cssW) * iw, by = iy + (m.y / cssH) * ih, r = 0.105;
-    s.addShape(p.ShapeType.ellipse, { x: bx - r, y: by - r, w: r * 2, h: r * 2, fill: { color: KIND[c.kind] || K_API }, line: { color: WHITE, width: 1 } });
-    s.addText(String(c.n), { x: bx - r, y: by - r, w: r * 2, h: r * 2, fontFace: FSB, fontSize: 9, color: WHITE, align: "center", valign: "middle", margin: 0, isTextBox: true });
+    badge(s, c.kind, bx - r, by - r, r * 2, c.n, 9, true);
   });
   const cx = W - M - colW;
   const chh = ah / callouts.length;
   callouts.forEach((c, i) => {
-    const cy = ay + i * chh, col = KIND[c.kind] || K_API;
+    const cy = ay + i * chh, col = kindColor(c.kind);
     if (i) hr(s, cx, cy, colW, LINE, 0.5);
-    s.addShape(p.ShapeType.ellipse, { x: cx, y: cy + 0.1, w: 0.21, h: 0.21, fill: { color: col } });
-    s.addText(String(c.n), { x: cx, y: cy + 0.1, w: 0.21, h: 0.21, fontFace: FSB, fontSize: 8.5, color: WHITE, align: "center", valign: "middle", margin: 0, isTextBox: true });
+    badge(s, c.kind, cx, cy + 0.1, 0.21, c.n, 8.5, false);
     const body = [];
     if (c.path) body.push({ text: c.path + "\n", options: { fontFace: MONO, fontSize: 8.5, color: col, bold: true } });
     body.push({ text: c.text, options: { fontFace: FM, fontSize: 9.5, color: INK } });
     if (c.note) body.push({ text: "\n" + c.note, options: { fontFace: F, fontSize: 8.5, color: MUTED } });
     s.addText(body, { x: cx + 0.32, y: cy + 0.04, w: colW - 0.34, h: chh - 0.08, valign: "middle", margin: 0, isTextBox: true, lineSpacingMultiple: 1.1 });
   });
-  if (opt.foot) foot(s, opt.foot);
+  if (opt.foot) foot(s, opt.foot, opt.hand);
   if (opt.notes) s.addNotes(opt.notes);
   return s;
 }
@@ -226,15 +247,15 @@ function annotated(sec, title, sub, imgId, callouts, opt) {
     s.addText([{ text: t + "\n", options: { fontFace: FSB, fontSize: 13, color: INK } }, { text: d, options: { fontFace: F, fontSize: 10, color: INK2 } }], { x: x + 0.1, y, w: bw - 0.2, h: bh, align: "center", valign: "middle", margin: 0, isTextBox: true, lineSpacingMultiple: 1.15 });
   };
   bx(M, "밤 근무 간호사", "환자를 밤새 봤다");
-  s.addShape(p.ShapeType.rightArrow, { x: M + bw + 0.25, y: y + bh / 2 - 0.16, w: aw, h: 0.32, fill: { color: TEAL }, line: { type: "none" } });
-  s.addText("인계", { x: M + bw + 0.25, y: y - 0.04, w: aw, h: 0.3, fontFace: FSB, fontSize: 13, color: TEAL, align: "center", margin: 0, isTextBox: true });
+  s.addShape(p.ShapeType.rightArrow, { x: M + bw + 0.25, y: y + bh / 2 - 0.16, w: aw, h: 0.32, fill: { color: PEN }, line: { type: "none" } });
+  s.addText("인계", { x: M + bw + 0.25, y: y - 0.12, w: aw, h: 0.4, fontFace: HAND, fontSize: 20, color: PEN, align: "center", margin: 0, isTextBox: true });
   s.addText("환자 상태와 주의사항을 말로, 글로 넘긴다", { x: M + bw + 0.25, y: y + bh / 2 + 0.2, w: aw, h: 0.3, fontFace: F, fontSize: 10, color: INK2, align: "center", margin: 0, isTextBox: true });
   bx(W - M - bw, "아침 근무 간호사", "이제부터 이 환자를 본다");
   const rows = [["1", "넘겼다는 기록은 남는다. 받았다는 기록은 없다.", "나중에 \"들었다 / 못 들었다\"가 갈려도 확인할 데가 없다"],
                 ["2", "누가 못 나오면, 수간호사가 표를 고치고 메신저로 다시 알린다.", "지금 배정이 무엇인지, 왜 바뀌었는지가 남지 않는다"]];
   rows.forEach((r, i) => {
     const py = 2.9 + i * 0.92; hr(s, M, py, W - 2 * M, LINE, 0.5);
-    s.addText(r[0], { x: M, y: py + 0.1, w: 0.5, h: 0.7, fontFace: FL, fontSize: 24, color: AMBER, valign: "middle", margin: 0, isTextBox: true });
+    s.addText(r[0], { x: M, y: py + 0.1, w: 0.5, h: 0.7, fontFace: FL, fontSize: 24, color: PEN, valign: "middle", margin: 0, isTextBox: true });
     s.addText([{ text: r[1] + "\n", options: { fontFace: FSB, fontSize: 12.5, color: INK } }, { text: r[2], options: { fontFace: F, fontSize: 10.5, color: INK2 } }], { x: M + 0.55, y: py + 0.1, w: W - 2 * M - 0.6, h: 0.7, valign: "middle", margin: 0, isTextBox: true, lineSpacingMultiple: 1.15 });
   });
   foot(s, "한 팀의 책임 간호사를 \"차지\"라고 부른다. 인계는 차지가 쓰고 다음 근무의 차지가 받는다. 이 발표에 필요한 말은 이게 전부다 [C]");
@@ -247,14 +268,14 @@ function annotated(sec, title, sub, imgId, callouts, opt) {
   steps.forEach((st, i) => {
     const x = M + i * (w + gap);
     s.addShape(p.ShapeType.rect, { x, y, w, h, fill: { type: "none" }, line: { color: LINE, width: 0.75 } });
-    s.addText(st[0], { x: x + 0.2, y: y + 0.1, w: 1, h: 0.6, fontFace: FL, fontSize: 34, color: TEAL, margin: 0, isTextBox: true });
+    s.addText(st[0], { x: x + 0.2, y: y + 0.1, w: 1, h: 0.6, fontFace: FL, fontSize: 34, color: PEN, margin: 0, isTextBox: true });
     s.addText(st[1], { x: x + 0.2, y: y + 0.7, w: w - 0.4, h: 0.36, fontFace: FX, fontSize: 16, color: INK, charSpacing: -0.3, margin: 0, isTextBox: true });
     s.addText(st[2], { x: x + 0.2, y: y + 1.08, w: w - 0.4, h: 0.6, fontFace: F, fontSize: 10.5, color: INK2, margin: 0, isTextBox: true, lineSpacingMultiple: 1.2 });
     s.addText(st[3], { x: x + 0.2, y: y + 1.66, w: w - 0.4, h: 0.26, fontFace: FM, fontSize: 9, color: MUTED, margin: 0, isTextBox: true });
-    if (i < 2) s.addShape(p.ShapeType.rightArrow, { x: x + w + 0.04, y: y + h / 2 - 0.1, w: gap - 0.08, h: 0.2, fill: { color: TEAL }, line: { type: "none" } });
+    if (i < 2) s.addShape(p.ShapeType.rightArrow, { x: x + w + 0.04, y: y + h / 2 - 0.1, w: gap - 0.08, h: 0.2, fill: { color: INK2 }, line: { type: "none" } });
   });
   const by = y + h + 0.3;
-  s.addShape(p.ShapeType.rect, { x: M, y: by, w: W - 2 * M, h: 0.72, fill: { color: AMBER_SOFT }, line: { type: "none" } });
+  s.addShape(p.ShapeType.rect, { x: M, y: by + 0.08, w: 0.05, h: 0.56, fill: { color: PEN }, line: { type: "none" } });
   s.addText([{ text: "누가 못 나오면 1로 돌아가 다시 정한다.  ", options: { fontFace: FSB, fontSize: 12, color: INK } }, { text: "바뀐 내용은 당사자 화면에 바로 뜨고, 왜 바꿨는지가 같이 남는다", options: { fontFace: F, fontSize: 10.5, color: INK2 } }], { x: M + 0.24, y: by, w: W - 2 * M - 0.48, h: 0.72, valign: "middle", margin: 0, isTextBox: true });
   foot(s, "하지 않는 것: 근무표 만들기 · 병원 전산(EMR) 연동 · 실제 환자정보 · 의학적 판단");
   s.addNotes("세 동사만 기억시키면 뒤 화면이 전부 이 셋 중 하나로 보인다.");
@@ -272,15 +293,15 @@ function annotated(sec, title, sub, imgId, callouts, opt) {
   boxes.forEach((b, i) => {
     const x = M + i * (bw + 0.3);
     hr(s, x, 1.14, bw, LINE, 0.5);
-    s.addText(b.t, { x, y: 1.22, w: bw, h: 0.26, fontFace: FM, fontSize: 9.5, color: TEAL, margin: 0, isTextBox: true });
+    s.addText(b.t, { x, y: 1.22, w: bw, h: 0.26, fontFace: FM, fontSize: 9.5, color: PEN, margin: 0, isTextBox: true });
     s.addText(b.d, { x, y: 1.5, w: bw, h: 0.72, fontFace: F, fontSize: 11.5, color: INK, margin: 0, isTextBox: true, lineSpacingMultiple: 1.25 });
   });
-  s.addShape(p.ShapeType.rect, { x: M, y: 2.55, w: 0.05, h: 1.02, fill: { color: TEAL } });
+  s.addShape(p.ShapeType.rect, { x: M, y: 2.55, w: 0.05, h: 1.02, fill: { color: PEN }, line: { type: "none" } });
   s.addText("누가 무엇을 맡았고, 무엇을 주고받았는지가 남는다",
     { x: M + 0.24, y: 2.55, w: W - 2 * M - 0.3, h: 0.36, fontFace: FX, fontSize: 15, color: INK, charSpacing: -0.3, valign: "middle", margin: 0, isTextBox: true });
   s.addText("근무표는 오늘 누가 나오는지까지만 말합니다. 그 다음 칸, 누가 인계를 맡았고 누가 받아서 확인했는지는 비어 있습니다. 그 한 칸을 붙였습니다.",
     { x: M + 0.24, y: 2.93, w: W - 2 * M - 0.3, h: 0.62, fontFace: F, fontSize: 11, color: INK2, valign: "top", margin: 0, isTextBox: true, lineSpacingMultiple: 1.2 });
-  s.addText([{ text: "하지 않은 것   ", options: { fontFace: FM, color: AMBER, fontSize: 10.5 } },
+  s.addText([{ text: "하지 않은 것   ", options: { fontFace: FM, color: PEN, fontSize: 10.5 } },
              { text: "근무표 자동 생성, 병원 전산(EMR) 연동, 실제 환자정보, 의학적 판단이나 추천, 교육·급여·알람", options: { fontFace: F, color: INK2, fontSize: 10.5 } }],
     { x: M, y: 3.85, w: W - 2 * M, h: 0.3, valign: "middle", margin: 0, isTextBox: true });
   s.addNotes("정의 한 문장을 그대로 읽고, '하지 않은 것'으로 범위를 먼저 닫는다.");
@@ -292,7 +313,7 @@ function annotated(sec, title, sub, imgId, callouts, opt) {
   SECTIONS.forEach((it, i) => {
     const col = i < 4 ? 0 : 1, row = i % 4;
     const x = M + col * (W - 2 * M) / 2 + (col ? 0.3 : 0), y = 1.3 + row * 0.86;
-    s.addText(it[0], { x, y, w: 0.6, h: 0.5, fontFace: FL, fontSize: 20, color: TEAL, valign: "middle", margin: 0, isTextBox: true });
+    s.addText(it[0], { x, y, w: 0.6, h: 0.5, fontFace: FL, fontSize: 20, color: INK, valign: "middle", margin: 0, isTextBox: true });
     s.addText(it[1], { x: x + 0.6, y, w: (W - 2 * M) / 2 - 1.0, h: 0.5, fontFace: FM, fontSize: 13, color: INK, valign: "middle", margin: 0, isTextBox: true });
     hr(s, x, y + 0.56, (W - 2 * M) / 2 - 0.4, LINE, 0.5);
   });
@@ -312,7 +333,7 @@ function annotated(sec, title, sub, imgId, callouts, opt) {
   words.forEach((x, i) => {
     const y = top + i * hh;
     if (i) hr(s, M, y, W - 2 * M, LINE, 0.5);
-    s.addText(x.w, { x: M, y, w: 1.4, h: hh, fontFace: FX, fontSize: 15, color: TEAL, charSpacing: -0.3, valign: "middle", margin: 0, isTextBox: true });
+    s.addText(x.w, { x: M, y, w: 1.4, h: hh, fontFace: FX, fontSize: 15, color: PEN, charSpacing: -0.3, valign: "middle", margin: 0, isTextBox: true });
     s.addText(x.d, { x: M + 1.5, y, w: W - 2 * M - 1.5, h: hh, fontFace: F, fontSize: 11.5, color: INK, valign: "middle", margin: 0, isTextBox: true });
   });
   foot(s, "한 병동 기준. 병원마다, 병동마다 다르다는 것도 같은 인터뷰에서 들었다 [C]");
@@ -325,7 +346,7 @@ tableSlide("01", "비슷한 서비스는 없었나", null,
     ["국내 비슷한 서비스 13건\n(국내 12, 일본 1)", { text: "근무 확정부터 그날 역할, 인계 작성, 결원 재배정까지\n하나로 이어 놓은 서비스는 찾지 못했다", bold: true, color: INK }, "[B] 제품 공식 페이지, 앱스토어 설명"],
     ["해외", "Epic \"Art\": 미국 병원 전산에 내장, 국내 병동은 선택 불가\nShiftSBAR: 개인이 혼자 쓰는 도구, 병동 단위 배정과 확인이 없다", "[B] Epic 공식 포스트, 제품 페이지"],
     ["법으로 막혀 있나", "아니다. 건강정보는 민감정보라 조건이 붙지만\n동의와 법령 근거가 있으면 다룰 수 있다", "[A] 개인정보보호법 제23조"],
-    ["국내 병원 전산에\n인계 전용 화면이 있나", { text: "확인하지 못했다. \"없다\"는 뜻이 아니다", color: AMBER, bold: true }, "[D] 미검증"],
+    ["국내 병원 전산에\n인계 전용 화면이 있나", { text: "확인하지 못했다. \"없다\"는 뜻이 아니다", color: PEN, bold: true }, "[D] 미검증"],
   ],
   [2.0, 5.0, 1.8],
   { foot: "비어 있는 이유는 법이 아니라 비용(동의 설계, 접근 통제, 병원 승인)이라고 본다. 개인 해석이라 등급을 안 붙였다",
@@ -334,7 +355,7 @@ tableSlide("01", "비슷한 서비스는 없었나", null,
 pointsSlide("01", "이 설계의 범위", "병동 한 곳, 간호사 한 분", [
   { n: "1", t: "병동 한 곳", d: "국내 종합병원 병동 한 곳의 운영 방식이 기준 [C]" },
   { n: "2", t: "현직 간호사 한 분", d: "\"간호사들이 다 그렇다\"가 아니라 한 분께 확인한 내용 [C]" },
-  { n: "3", t: "병동마다 다르다", d: "차지만 하는 간호사를 따로 두는 병원도 있다고 한다. 그 차이는 이번 범위 밖 [C]", color: AMBER },
+  { n: "3", t: "병동마다 다르다", d: "차지만 하는 간호사를 따로 두는 병원도 있다고 한다. 그 차이는 이번 범위 밖 [C]", color: PEN },
   { n: "4", t: "주장마다 출처 등급", d: "[A] 원문 확인, [B] 2차 출처, [C] 인터뷰로 확인, [D] 아직 검증 못 함. 등급이 없으면 내 판단" },
 ], { notes: "범위를 좁힌 걸 근거와 같이 말한다. 채점 기준이 정합성이라 감점이 아니다." });
 
@@ -344,10 +365,10 @@ tableSlide("02", "불편했던 것, 푼 방법", null,
   [
     [{ text: "간호사\n(차지)", bold: true, color: INK },
      { text: "인계를 넘기긴 하는데 받은 사람이 제대로 들었는지\n남는 기록이 없다 [C]\n내용은 전산에 남는다. 없는 건 \"받았다\"는 기록\n들은 말: \"그날 차지가 듣는 게 당연한 구조\"" },
-     "받은 사람이 핵심을 자기 말로 다시 적어야 확인 처리\n눈으로 읽은 것만으로는 확인이 아니다\n누가 언제 받았는지 남는다", { text: "F-04", bold: true, color: TEAL }],
+     "받은 사람이 핵심을 자기 말로 다시 적어야 확인 처리\n눈으로 읽은 것만으로는 확인이 아니다\n누가 언제 받았는지 남는다", { text: "F-04", bold: true, color: PEN }],
     [{ text: "수간호사", bold: true, color: INK },
      { text: "누가 못 나오면 바뀐 내용을 여기저기 다시 알려야 하고\n지금 배정이 뭔지, 왜 바뀌었는지도 안 남는다 [C]\n엑셀을 고치고 메신저로 다시 공지한다 [D]" },
-     "화면에서 바로 다시 배정하면 당사자 화면에 그대로 뜬다\n다시 공지할 필요가 없다\n바꾼 이유가 같이 남는다", { text: "F-05", bold: true, color: AMBER }],
+     "화면에서 바로 다시 배정하면 당사자 화면에 그대로 뜬다\n다시 공지할 필요가 없다\n바꾼 이유가 같이 남는다", { text: "F-05", bold: true, color: PEN }],
   ],
   [0.85, 4.05, 3.2, 0.7],
   { fontSize: 11, maxRowH: 1.3, notes: "'기록이 없다'가 아니라 '받았다는 기록이 없다'. 내용은 남는다." });
@@ -355,10 +376,10 @@ tableSlide("02", "불편했던 것, 푼 방법", null,
 tableSlide("02", "인터뷰 뒤에 뺀 것 네 가지", null,
   ["처음에 적었던 것", "실제로는", "그래서"],
   [
-    [{ text: "\"출근해서야 자기 역할을 안다\"", color: AMBER }, { text: "월말 전에 팀장이 미리 정하고\n그 뒤에 간호사끼리 서로 바꾼다 [C]", bold: true, color: INK }, "불편 항목에서 뺌\n관련 기능은 기반 기능으로"],
-    [{ text: "\"인계 내용이 기록되지 않는다\"", color: AMBER }, { text: "내용은 남는다\n안 남는 건 \"받았다\"는 기록 [C]", bold: true, color: INK }, "해결 대상을 '받은 기록'으로 좁힘"],
-    [{ text: "\"역할마다 인계 항목이 달라야 한다\"", color: AMBER }, { text: "아니다. 인계는 차지가 받고\n액팅은 옆에서 같은 인계를 듣는다 [C]", bold: true, color: INK }, "항목을 병동 공통 한 벌로"],
-    [{ text: "\"전산 기록 하나가 인계와 공식 기록을 겸한다\"", color: AMBER }, { text: "우리가 잘못 옮긴 말이었다\n인계장과 공식 기록은 따로 [C]", bold: true, color: INK }, "\"우리가 이중 입력을 만든다\"는\n전제가 사라짐"],
+    [{ text: "\"출근해서야 자기 역할을 안다\"", color: PEN }, { text: "월말 전에 팀장이 미리 정하고\n그 뒤에 간호사끼리 서로 바꾼다 [C]", bold: true, color: INK }, "불편 항목에서 뺌\n관련 기능은 기반 기능으로"],
+    [{ text: "\"인계 내용이 기록되지 않는다\"", color: PEN }, { text: "내용은 남는다\n안 남는 건 \"받았다\"는 기록 [C]", bold: true, color: INK }, "해결 대상을 '받은 기록'으로 좁힘"],
+    [{ text: "\"역할마다 인계 항목이 달라야 한다\"", color: PEN }, { text: "아니다. 인계는 차지가 받고\n액팅은 옆에서 같은 인계를 듣는다 [C]", bold: true, color: INK }, "항목을 병동 공통 한 벌로"],
+    [{ text: "\"전산 기록 하나가 인계와 공식 기록을 겸한다\"", color: PEN }, { text: "우리가 잘못 옮긴 말이었다\n인계장과 공식 기록은 따로 [C]", bold: true, color: INK }, "\"우리가 이중 입력을 만든다\"는\n전제가 사라짐"],
   ],
   [2.8, 3.4, 2.6],
   { notes: "전제가 무너진 걸 숨기지 않고 기록으로 남겼다고 말한다." });
@@ -367,8 +388,8 @@ tableSlide("02", "인터뷰 뒤에 뺀 것 네 가지", null,
 tableSlide("03", "누가 쓰나", "두 사람. 다른 병동 사람은 못 들어온다",
   ["쓰는 사람", "볼 수 있는 것", "하는 일"],
   [
-    [{ text: "수간호사", bold: true, color: AMBER }, "자기가 맡은 병동 전체 [C]", "근무표 등록, 그날 역할과 인계 담당 정하기, 인계 항목 정하기\n결원 생기면 다시 배정, 바뀐 내역 보기"],
-    [{ text: "간호사", bold: true, color: TEAL }, "내 근무와 역할, 우리 팀 환자\n내가 맡은 인계", "내 근무 확인. 차지면 인계 쓰기, 받고 확인하기\n액팅이면 우리 팀 인계 읽기. 내가 주고받은 인계 보기"],
+    [{ text: "수간호사", bold: true, color: INK }, "자기가 맡은 병동 전체 [C]", "근무표 등록, 그날 역할과 인계 담당 정하기, 인계 항목 정하기\n결원 생기면 다시 배정, 바뀐 내역 보기"],
+    [{ text: "간호사", bold: true, color: INK }, "내 근무와 역할, 우리 팀 환자\n내가 맡은 인계", "내 근무 확인. 차지면 인계 쓰기, 받고 확인하기\n액팅이면 우리 팀 인계 읽기. 내가 주고받은 인계 보기"],
     [{ text: "다른 병동 사람", bold: true, color: MUTED }, "아무것도", "막는다. \"없는 것처럼\"이 아니라 \"권한이 없다\"고 답한다(403)"],
   ],
   [1.5, 2.9, 4.4],
@@ -377,9 +398,9 @@ tableSlide("03", "누가 쓰나", "두 사람. 다른 병동 사람은 못 들�
 tableSlide("03", "볼 수 있는 범위", "세 갈래. 권한이 자기 일을 막지 않게",
   ["", "볼 수 있는 것", "판단 기준"],
   [
-    [{ text: "1", color: TEAL, opts: { fontFace: FL, fontSize: 18 } }, "수간호사는 병동 전체", "내 소속 병동이면 전부"],
-    [{ text: "2", color: TEAL, opts: { fontFace: FL, fontSize: 18 } }, "내가 인계를 맡은 환자와 그 인계", "그 근무에서 나에게 배정된 입원 건"],
-    [{ text: "3", color: TEAL, opts: { fontFace: FL, fontSize: 18 } }, { text: "같은 팀, 같은 시간에 일하는 사람의 인계", bold: true, color: INK }, "같은 병동·같은 날·같은 근무조, 같은 팀, 이미 넘어간 인계만\n작성 중인 것은 쓴 사람만"],
+    [{ text: "1", color: INK, opts: { fontFace: FL, fontSize: 18 } }, "수간호사는 병동 전체", "내 소속 병동이면 전부"],
+    [{ text: "2", color: INK, opts: { fontFace: FL, fontSize: 18 } }, "내가 인계를 맡은 환자와 그 인계", "그 근무에서 나에게 배정된 입원 건"],
+    [{ text: "3", color: INK, opts: { fontFace: FL, fontSize: 18 } }, { text: "같은 팀, 같은 시간에 일하는 사람의 인계", bold: true, color: INK }, "같은 병동·같은 날·같은 근무조, 같은 팀, 이미 넘어간 인계만\n작성 중인 것은 쓴 사람만"],
   ],
   [0.5, 3.4, 4.9],
   { fontSize: 11.5, foot: "쓰는 건 더 좁다. 인계를 쓰는 건 맡은 사람만, 확인은 받을 사람만. 결원으로 등록된 사람은 받을 수 없다",
@@ -391,8 +412,8 @@ tableSlide("03", "기능", null,
     ["F-01", "확정된 근무표 등록", "수간호사", "3", "권한 없음 403, 같은 사람 중복 409"],
     ["F-02", "그날 역할과 인계 담당 정하기", "수간호사", "4", "403, 409, 입력 모자람 422"],
     ["F-03", "내 근무·역할·바뀐 내용 확인", "간호사", "8", "남의 배정 조회는 403"],
-    [{ text: "F-04", bold: true, color: TEAL }, { text: "인계 쓰기, 받은 사람이 요약해 확인", bold: true, color: INK }, "차지가 쓰고, 다음 차지가 확인\n액팅은 읽기", "9, 10, 11", "당사자 아님 403, 필수·요약 미입력 422\n재확인·퇴원 409"],
-    [{ text: "F-05", bold: true, color: AMBER }, { text: "결원 등록, 다시 배정, 완료 확인과 이력", bold: true, color: INK }, "수간호사", "6, 7", "대체자 없이 완료 422, 재확인 409"],
+    [{ text: "F-04", bold: true, color: PEN }, { text: "인계 쓰기, 받은 사람이 요약해 확인", bold: true, color: INK }, "차지가 쓰고, 다음 차지가 확인\n액팅은 읽기", "9, 10, 11", "당사자 아님 403, 필수·요약 미입력 422\n재확인·퇴원 409"],
+    [{ text: "F-05", bold: true, color: PEN }, { text: "결원 등록, 다시 배정, 완료 확인과 이력", bold: true, color: INK }, "수간호사", "6, 7", "대체자 없이 완료 422, 재확인 409"],
     ["F-06", "병동 인계 항목 정하기 (F-04 가 쓰는 양식)", "수간호사", "5", "간호사가 고치려 하면 403"],
   ],
   [0.65, 3.3, 2.3, 0.85, 1.7],
@@ -418,15 +439,15 @@ bigImage("04", "간호사 쪽", "내 근무 → 인계 쓰기 → 인계 받고 
 /* ============================================================ 05 화면 */
 {
   const s = slide("05"); titleBar(s, "화면들을 읽는 법", null);
-  const rows = [[K_API, "빨강", "API 가 호출되는 곳. 어떤 주소로 무엇을 하는지"],
-                [K_NAV, "초록", "화면이 이동하는 곳. 이 버튼을 누르면 어디로 가는지"],
-                [K_EXC, "파랑", "막히는 곳. 오류와 예외. 왜 막는지가 이 설계의 핵심"]];
+  const rows = [["api", "빨간 원", "API 가 호출되는 곳. 어떤 주소로 무엇을 하는지"],
+                ["nav", "검은 원", "화면이 이동하는 곳. 이 버튼을 누르면 어디로 가는지"],
+                ["exc", "빨간 테두리", "막히는 곳. 오류와 예외. 왜 막는지가 이 설계의 핵심"]];
   rows.forEach((r, i) => {
     const y = 1.3 + i * 1.0;
     if (i) hr(s, M, y, W - 2 * M, LINE, 0.5);
-    s.addShape(p.ShapeType.ellipse, { x: M + 0.1, y: y + 0.33, w: 0.3, h: 0.3, fill: { color: r[0] } });
-    s.addText(r[1], { x: M + 0.64, y, w: 0.8, h: 0.96, fontFace: FX, fontSize: 14, color: r[0], valign: "middle", margin: 0, isTextBox: true });
-    s.addText(r[2], { x: M + 1.5, y, w: W - 2 * M - 1.6, h: 0.96, fontFace: F, fontSize: 12.5, color: INK, valign: "middle", margin: 0, isTextBox: true });
+    badge(s, r[0], M + 0.1, y + 0.33, 0.3, undefined, 9, false);
+    s.addText(r[1], { x: M + 0.64, y, w: 1.1, h: 0.96, fontFace: FX, fontSize: 14, color: kindColor(r[0]), valign: "middle", margin: 0, isTextBox: true });
+    s.addText(r[2], { x: M + 1.8, y, w: W - 2 * M - 1.9, h: 0.96, fontFace: F, fontSize: 12.5, color: INK, valign: "middle", margin: 0, isTextBox: true });
   });
   foot(s, "캡처는 전부 실제로 도는 데모에서 찍었다. 가상 데이터이고, 화면에 보이는 주소가 그대로 API 명세의 주소");
   s.addNotes("범례를 화면 파트 맨 앞에 두면 이후 6장이 다 읽힌다.");
@@ -445,7 +466,7 @@ annotated("05", "인계 쓰기", "필수 항목이 비면 넘길 수 없다", "9
   { n: 2, kind: "exc", path: "422 보낸 내용이 모자람", text: "필수 항목이 비어 있으면 넘길 수 없다", note: "어떤 항목이 비었는지 이름까지 알려준다" },
   { n: 3, kind: "api", path: "POST /handovers/{id}/send", text: "넘기면 '작성 중'에서 '전달됨'으로", note: "받을 사람은 서버가 고른다. 같은 환자의 다음 근무 담당" },
   { n: 4, kind: "api", path: "PATCH /handovers/{id}/items", text: "입력한 내용은 임시저장", note: "한 번 넘긴 뒤에는 못 고친다(409)" },
-], { foot: "받을 사람을 요청에서 안 받는 이유: 받으면 아무 근무로나 인계를 보낼 수 있게 된다",
+], { foot: "받을 사람을 요청에서 안 받는 이유: 받으면 아무 근무로나 인계를 보낼 수 있게 된다", hand: true,
      notes: "필수 항목 검사는 칸이 비었는지만 본다. 내용의 성의는 안 본다. 한계 슬라이드에서 말한다." });
 
 annotated("05", "인계 받기", "요약을 써야 확인이 된다", "10_handover_receive_nurse", [
@@ -453,7 +474,7 @@ annotated("05", "인계 받기", "요약을 써야 확인이 된다", "10_handov
   { n: 2, kind: "api", path: "PATCH /handovers/{id}/receipt", text: "받은 사람이 자기 말로 쓴 요약이 여기 저장", note: "이 칸이 이 서비스의 핵심" },
   { n: 3, kind: "api", path: "POST /…/receipt/confirmation", text: "확인 처리. 이때 '확인됨'이 된다", note: "보낸 사람 화면에 이 요약이 되돌아간다" },
   { n: 4, kind: "exc", path: "422 · 403", text: "요약이 없으면 확인되지 않는다(422)", note: "그 환자를 맡은 사람이 아니면 403" },
-], { foot: "화면에 들어오는 순간 '열어봤다'는 시각이 따로 남는다. 조회와 분리했다. 수간호사가 봐도 수신 기록이 되면 안 되니까",
+], { foot: "화면에 들어오는 순간 '열어봤다'는 시각이 따로 남는다. 조회와 분리했다. 수간호사가 봐도 수신 기록이 되면 안 되니까", hand: true,
      notes: "단순 '읽음' 체크와 receiver_summary 를 가르는 지점. 첫 번째 불편의 해결." });
 
 annotated("05", "결원 재배정", "사람이 판단하는 자리와 시스템이 막는 자리를 나눴다", "6_reassign_manager", [
@@ -527,7 +548,7 @@ bigImage("06", "전체 12개", "자세히 읽는 그림이 아니라 얼마나 �
 
 pointsSlide("06", "표 이름을 바꾼 이야기", "\"환자의 담당 간호사\"라는 표가 있었다. 지금은 없다", [
   { n: "1", t: "처음엔", d: "환자 한 명에 담당 간호사 한 명을 붙이는 표를 만들었다", color: MUTED },
-  { n: "2", t: "인터뷰에서 뒤집혔다 [C]", d: "환자는 팀이 같이 본다. \"이 환자는 이 간호사 담당\"이라고 정하는 행위 자체가 현장에 없었다", color: AMBER },
+  { n: "2", t: "인터뷰에서 뒤집혔다 [C]", d: "환자는 팀이 같이 본다. \"이 환자는 이 간호사 담당\"이라고 정하는 행위 자체가 현장에 없었다", color: PEN },
   { n: "3", t: "뜻을 바꿨다", d: "지금 이 표는 \"그 근무에서 이 입원 건의 인계를 맡을 사람\". 줄 수가 (팀 인원 × 환자 수)에서 (환자 수)로 줄었다" },
   { n: "4", t: "팀이 보는 환자 범위는 다른 곳에", d: "입원 건에 팀을 붙였다. 그래야 옆에서 같이 듣는 액팅도 우리 팀 인계를 읽을 수 있다" },
   { n: "5", t: "역할로 강제하지 않았다", d: "차지가 빠지면 누가 올라가는지 확인 못 했다. 확인 못 한 운영 방식을 DB 가 금지하면 안 된다고 봤다" },
@@ -537,7 +558,7 @@ pointsSlide("06", "표 이름을 바꾼 이야기", "\"환자의 담당 간호�
 pointsSlide("06", "지우지 않고 남긴다", null, [
   { n: "1", t: "담당이 바뀌어도 옛 줄을 안 지운다", d: "'이관됨'으로 표시하고 새 줄을 만든다. 그날 누가 맡았는지가 기록이라서" },
   { n: "2", t: "인계 항목은 복사본", d: "수간호사가 병동 양식을 고쳐도 이미 쓴 인계의 항목은 그대로" },
-  { n: "3", t: "받을 사람이 못 나오게 되면", d: "그 인계를 '대체됨'으로 두고 새 담당에게 후속 인계를 같은 순간에 발행. 후속이 안 만들어지면 아예 실패시킨다. 인계가 끊긴 채 끝나면 안 된다", color: AMBER },
+  { n: "3", t: "받을 사람이 못 나오게 되면", d: "그 인계를 '대체됨'으로 두고 새 담당에게 후속 인계를 같은 순간에 발행. 후속이 안 만들어지면 아예 실패시킨다. 인계가 끊긴 채 끝나면 안 된다", color: PEN },
   { n: "4", t: "확인까지 끝난 인계는 안 건드린다", d: "확인된 인계를 뒤늦게 '대체됨'으로 바꾸려 하면 막는다(409). 그 뒤의 담당 변경은 사고가 아니라 정상 교대" },
   { n: "5", t: "대가도 같이 적었다", d: "남긴 줄도 여전히 유효한 번호라서, 읽을 때·쓸 때·고를 때 \"이게 지금 것인가\"를 매번 확인해야 한다" },
 ], { notes: "남기는 설계의 비용을 같이 적는 게 설계 고민의 증거." });
@@ -593,7 +614,7 @@ bigImage("07", "API 명세", "24개 전부. 주소 21개, 명세 오류 0",
   [left, right].forEach((set, k) => {
     const cw = (W - 2 * M) / 2 - 0.12;
     const x = M + k * (cw + 0.24);
-    const hd = (t) => ({ text: t, options: { color: INK, fontFace: FM, fontSize: 8.5, border: rowBorder(TEAL, 1) } });
+    const hd = (t) => ({ text: t, options: { color: INK, fontFace: FM, fontSize: 8.5, border: rowBorder(INK, 1) } });
     const body = [[hd("화면"), hd("메서드와 주소"), hd("무엇을")]];
     set.forEach((r, i) => {
       const bd = rowBorder(LINE, i === set.length - 1 ? 0 : 0.5);
@@ -616,7 +637,7 @@ bigImage("07", "API 명세", "24개 전부. 주소 21개, 명세 오류 0",
     ["결원 사유", "사람이 쓰는 자리는 결원 등록 하나뿐. 나머지 기록은 복사\n사유가 서로 달라지면 한 사건의 이력을 이어서 읽을 수 없다"],
     ["화면 버튼 판정", "쓰기, 확인, 읽기 중 무엇을 보여줄지를 서버가 정해서 내려준다\n화면마다 따로 판단하면 규칙이 흩어진다"],
   ];
-  const hd = (t) => ({ text: t, options: { color: INK, fontFace: FM, fontSize: 9.5, border: rowBorder(TEAL, 1) } });
+  const hd = (t) => ({ text: t, options: { color: INK, fontFace: FM, fontSize: 9.5, border: rowBorder(INK, 1) } });
   const body = [[hd("값"), hd("왜 서버가 정하나")]];
   rows.forEach((r, i) => {
     const bd = rowBorder(LINE, i === rows.length - 1 ? 0 : 0.5);
@@ -638,10 +659,10 @@ tableSlide("07", "막을 때 주는 답", "막는 이유가 다르면 답도 달
   ["답", "뜻", "이 서비스에서는"],
   [
     [{ text: "401", color: INK, opts: { fontFace: FL, fontSize: 18 } }, "로그인 안 됨", "모든 요청의 기본"],
-    [{ text: "403", color: AMBER, opts: { fontFace: FL, fontSize: 18 } }, "있긴 한데 당신은 못 본다", "다른 병동, 내 인계가 아님, 액팅이 쓰려고 할 때\n결원으로 등록된 사람이 받으려 할 때"],
+    [{ text: "403", color: INK, opts: { fontFace: FL, fontSize: 18 } }, "있긴 한데 당신은 못 본다", "다른 병동, 내 인계가 아님, 액팅이 쓰려고 할 때\n결원으로 등록된 사람이 받으려 할 때"],
     [{ text: "404", color: INK, opts: { fontFace: FL, fontSize: 18 } }, "그런 건 없다", "없는 번호. 다른 병동을 404 로 숨기지 않았다. 둘을 섞지 않는다"],
-    [{ text: "409", color: TEAL, opts: { fontFace: FL, fontSize: 18 } }, { text: "지금 상태에서는 그 일을 할 수 없다", bold: true, color: INK }, "이미 확인된 인계를 또 확인, 대체된 인계를 고치기\n퇴원한 환자에게 새 인계, 같은 사람을 같은 근무에 두 번"],
-    [{ text: "422", color: TEAL, opts: { fontFace: FL, fontSize: 18 } }, { text: "보낸 내용이 모자라다", bold: true, color: INK }, "필수 항목이 비었음, 요약을 안 썼음\n대체자 없이 완료 확인, 다음 근무 담당이 아직 없음"],
+    [{ text: "409", color: PEN, opts: { fontFace: FL, fontSize: 18 } }, { text: "지금 상태에서는 그 일을 할 수 없다", bold: true, color: INK }, "이미 확인된 인계를 또 확인, 대체된 인계를 고치기\n퇴원한 환자에게 새 인계, 같은 사람을 같은 근무에 두 번"],
+    [{ text: "422", color: PEN, opts: { fontFace: FL, fontSize: 18 } }, { text: "보낸 내용이 모자라다", bold: true, color: INK }, "필수 항목이 비었음, 요약을 안 썼음\n대체자 없이 완료 확인, 다음 근무 담당이 아직 없음"],
   ],
   [0.8, 2.5, 5.5],
   { foot: "형식이 깨진 요청(400)은 프레임워크 기본 처리이고, 명세는 뜻이 모자란 요청을 422 로 통일했다. 인계 상태는 작성 중, 전달됨, 확인됨 순서로만 간다",
@@ -652,38 +673,91 @@ pointsSlide("08", "고민했던 것", null, [
   { n: "1", t: "대시보드만 화면 전용 API", d: "네 군데 데이터를 합친다. 나누면 화면이 네 번 요청하고, 세는 규칙이 화면 쪽으로 흩어진다" },
   { n: "2", t: "펼쳐 보는 목록은 기존 API 를 다시 쓴다", d: "명단은 근무 조회가 이미 돌려주는 값. 또 만들면 같은 데이터가 두 곳에 정의된다" },
   { n: "3", t: "열어본 기록은 조회와 따로", d: "조회에 붙이면 수간호사나 액팅이 봐도 '받았다'가 된다. 그러면 확인의 뜻이 깨진다" },
-  { n: "4", t: "남은 인계는 시스템이 막지 않는다", d: "안 넘기는 게 정상인 경우가 있다(그 사이 퇴원 등). 대신 화면이 \"남은 N건\"을 보여주고 사람이 판단", color: AMBER },
-  { n: "5", t: "다른 병동은 403", d: "404 로 숨기는 게 더 방어적이지만, 권한 경계를 분명히 드러내는 쪽을 골랐다", color: AMBER },
+  { n: "4", t: "남은 인계는 시스템이 막지 않는다", d: "안 넘기는 게 정상인 경우가 있다(그 사이 퇴원 등). 대신 화면이 \"남은 N건\"을 보여주고 사람이 판단", color: PEN },
+  { n: "5", t: "다른 병동은 403", d: "404 로 숨기는 게 더 방어적이지만, 권한 경계를 분명히 드러내는 쪽을 골랐다", color: PEN },
 ], { notes: "버린 안과 그 이유를 적는 게 채택안만 적는 것보다 강하다." });
 
 pointsSlide("08", "못 한 것", null, [
-  { n: "1", t: "병원 전산(EMR)과 연결이 없다", d: "공식 의무기록은 병원 전산이 맡고, 이 설계는 인계 메모만. 카덱스를 대체하는지는 \"통합적으로 작용한다면\"이 조건인 긍정 [C]. 통합이 안 되면 병행이고 두 번 입력하게 된다", color: AMBER },
-  { n: "2", t: "요약을 성의 있게 썼는지는 못 본다", d: "칸이 비었는지만 검사. 한 글자만 적어도 '확인됨'이 된다. 남기는 건 \"누가 언제 자기 말로 적었는가\"까지", color: AMBER },
-  { n: "3", t: "차지가 인계를 안 써도 못 막는다", d: "액팅이 \"이건 적어 주세요\"라고 한 걸 반영했는지 이력으로 남기는 건 범위 밖", color: AMBER },
-  { n: "4", t: "확인해 준 분이 한 명", d: "간호사 화면은 한 분께 확인받았고, 수간호사 화면은 아직 가설", color: AMBER },
+  { n: "1", t: "병원 전산(EMR)과 연결이 없다", d: "공식 의무기록은 병원 전산이 맡고, 이 설계는 인계 메모만. 카덱스를 대체하는지는 \"통합적으로 작용한다면\"이 조건인 긍정 [C]. 통합이 안 되면 병행이고 두 번 입력하게 된다" },
+  { n: "2", t: "요약을 성의 있게 썼는지는 못 본다", d: "칸이 비었는지만 검사. 한 글자만 적어도 '확인됨'이 된다. 남기는 건 \"누가 언제 자기 말로 적었는가\"까지" },
+  { n: "3", t: "차지가 인계를 안 써도 못 막는다", d: "액팅이 \"이건 적어 주세요\"라고 한 걸 반영했는지 이력으로 남기는 건 범위 밖" },
+  { n: "4", t: "확인해 준 분이 한 명", d: "간호사 화면은 한 분께 확인받았고, 수간호사 화면은 아직 가설" },
   { n: "5", t: "앞으로", d: "질문과 답변(참여자가 가장 먼저 요청한 것), 접근 기록, 팀원 명단, 역할 교환 이력. 누가 뭘 열어봤는지 남기는 기록이 없고, 같은 근무 팀원이 \"오늘 우리 팀 차지가 누구인지\" 보는 화면도 없다", color: MUTED },
 ], { notes: "한계를 먼저 말하면 질문이 줄어든다." });
 
-/* 29라운드 — 2일차 사용자 세션 */
-pointsSlide("08", "써 본 사람의 말", "현직 간호사 1명이 데모를 직접 써 봤다. 대면, 편의표본, 과제 형식은 아님", [
-  { n: "1", t: "화면은 설명 없이 읽혔다", d: "\"한눈에 인계를 확인할 수 있어서 좋았다\" [C]. 간호사 화면 = 확인 1명. 수간호사 화면은 여전히 가설" },
-  { n: "2", t: "현장 규칙 세 개가 설계와 맞았다 [C]", d: "인계는 차지가 쓰고 액팅은 건드리지 않는다. 작성한 본인만, 넘기기 전까지만 고친다, 수간호사도 예외 없음 → 우리 403·409 그대로. 지운 기록이 문제 된 적이 있다(차지가 \"필요 없겠다\" 싶어 지운 기록이 나중에 중요했다) → 우리 설계엔 지우는 동작이 없고 지난 인계는 남는다" },
-  { n: "3", t: "설계와 다른 점 하나", d: "현장은 같은 병동이면 인계 열람에 권한이 없다. 우리는 같은 팀·같은 근무로 좁혔다. 넓히는 건 판정 조건 한 줄이고 데이터 구조는 그대로. 보완으로 둔다", color: AMBER },
-  { n: "4", t: "이중 작성은 지금도 있다", d: "EMR 에 적은 걸 카덱스에 또 적는 건 당연한 일로 여긴다. \"카덱스 대신 통합적으로 작용한다면 쓰겠다\". 이중 입력 우려는 풀렸고, 대체는 \"통합\"이 조건인 긍정" },
-  { n: "5", t: "가장 먼저 요청한 것", d: "인계해 준 사람에게 질문을 보내고, 알림이 가고, 답이 돌아오는 것. 데이터 모델에 \"③ closed-loop, 범위 밖\"으로 적어 둔 그 자리. 다음 순서 1번" },
-], { foot: "참여자는 이렇게 말했다. \"간호사들은 이렇다\"가 아니다",
-     notes: "과제 형식은 안 했고 자유롭게 써 보게 했다. 정량 기록은 없다. V1 답과 인계 기록 규칙 3개가 여기서 왔다." });
+/* 32라운드 — 2일차 사용자 세션. 원문 그대로(R170). 이름은 적지 않는다(규칙 1) */
+{
+  const s = slide("08"); titleBar(s, "써 본 사람의 말", "말한 그대로 옮겼다");
+  const mx = M, my = 1.32, mw = 5.2, mh = 3.0;
+  s.addShape(p.ShapeType.rect, { x: mx, y: my, w: mw, h: mh, fill: { color: MEMO }, line: { type: "none" }, rotate: -1.5 });
+  s.addText("UI는 불편함 없이 오히려 한눈에 인계를 확인할 수 있어서 좋았다. 다만 꼭 있으면 좋겠는 기능이 있다. 인계 해준 사람한테 질문을 할 수 있는 기능을 추가해달라. 수간호사한테 결원 배정을 쉽게 할 수 있는 기능도 너무 도움이 될 것 같아. 옆에서 지켜봤을 때, 근무표 만드는 것도 힘들어 보이긴 했지만 그것보다 심사과에서 심사하러 올 때 잘보여야 되는데 처방 누락건이 종종 있어서 이거에 대하여 누락건 잡아내는 시스템이 있으면 너무 좋겠다.",
+    { x: mx + 0.25, y: my + 0.15, w: mw - 0.5, h: mh - 0.3, fontFace: HAND, fontSize: 18.5, color: INK, valign: "top", margin: 0, isTextBox: true, lineSpacingMultiple: 1.15, rotate: -1.5 });
+  const cx = M + mw + 0.4, cw = W - M - cx;
+  s.addText("인계 기록에 대해 더 들은 것", { x: cx, y: 1.32, w: cw, h: 0.3, fontFace: FSB, fontSize: 11, color: INK, margin: 0, isTextBox: true });
+  const more = [
+    "실제로 인계 기록은 같은 병동이면 열람 자체는 권한이 필요 없다",
+    "다만 당연히 차지가 써야 하고, 액팅은 암묵적으로 건드리지 않는다",
+    "한 번 차지가 카덱스에서 \"이거는 굳이 필요 없겠는데\" 싶어 혼자 임의로 지운 기록이 나중에 알고 보니 진짜 중요한 기록이어서 문제가 된 적이 있었다",
+    "그래서 인계 기록은 수간호사도 수정 없이, 오직 본인이 작성한 인계 기록만 수정 권한이 있으면 좋겠다. 시점상 인계를 넘기기 직전까지만 수정 가능하고, 넘기고 확인 후에는 본인도 수정·삭제 불가능한 게 올바르다고 동의",
+  ];
+  const hs = [0.5, 0.5, 0.82, 1.1];
+  let y = 1.7;
+  more.forEach((t, i) => {
+    hr(s, cx, y, cw, LINE, 0.5);
+    s.addText(t, { x: cx, y: y + 0.04, w: cw, h: hs[i] - 0.06, fontFace: F, fontSize: 9.5, color: INK2, valign: "middle", margin: 0, isTextBox: true, lineSpacingMultiple: 1.12 });
+    y += hs[i];
+  });
+  foot(s, "[C] 현직 간호사 1명 · 데모를 써 본 뒤 대면으로 · 편의표본 · 말한 그대로, 해석은 뒤 두 장에");
+  s.addNotes("과제 형식은 안 했고 자유롭게 써 보게 했다. 정량 기록은 없다. 설계와 맞은 규칙 셋(작성자만 수정 403 · 넘긴 뒤 불변 409 · DELETE 없음)은 말로 잇는다. 열람 범위(현장은 병동 전체)는 우리가 더 좁아 보완으로 뒀다.");
+}
+
+{
+  const s = slide("08"); titleBar(s, "요청 목록, 정리한 그대로", null);
+  s.addText("시연 끝나고 옆에서 받아 적은 것", { x: M, y: 0.84, w: W - 2 * M, h: 0.34, fontFace: HAND, fontSize: 17, color: INK2, valign: "middle", margin: 0, isTextBox: true });
+  const cols = [
+    { t: "수간호사", w: 1.6, items: ["심사과 -> 처방 누락건 잡아내는 시스템", "근무표 자동 생성"] },
+    { t: "간호사", w: 3.9, items: [
+      "인계해준 간호사에게 질문 -> 앱으로 알림이 오고 답변까지",
+      "인계 내용 작성 권한을 작성한 본인만 수정 가능(실제로 간호기록도 이렇게 진행) -> 수간호사도 예외 없음",
+      "EMR -> 카덱스에 또 적는건 중복 작성이지만 당연히 해야되는 것으로 인식",
+      "약 받아오면 환자가 (60일치를 받아오면) 소진 날짜 계산 기능",
+      "안약 연고를 받아오면 유효기간 날짜 계산 기능",
+      "처치해야 할 일(주사 등) 시스템에 등록하면 알람 기능",
+      "환자가 호출벨을 3회 이상 누르면 응급 상황이라고 알람 뜨는 기능(연동이 필요한데 알아봐야할듯)",
+      "모든 환자들의 혈압 체온 등을 관제하는 시스템(디바이스가 필요할듯)",
+      "주치의한테 보고할때 SBAR를 양식으로 만들어서 템플릿화"] },
+    { t: "원무과", w: 2.7, rh: 0.56, items: [
+      "입원올때 ADL을 주보호자가 작성할 수 있는 시스템",
+      "AI를 활용해서 신환 정보를 리포트 형식으로 자동 작성해주는 시스템 -> 간호병동에서 열람 가능",
+      "퇴원 환자의 설문조사 -> 불만, 칭찬 적고 병원 시스템 개선에 기여",
+      "입원 환자 식이 신청 자동연동 시스템"] },
+  ];
+  const top = 1.34, bottom = H - 0.78, gap = 0.3;
+  let x = M;
+  cols.forEach((c) => {
+    s.addText(c.t, { x, y: top, w: c.w, h: 0.3, fontFace: FSB, fontSize: 11, color: INK, valign: "middle", margin: 0, isTextBox: true });
+    const rh = c.rh || (bottom - top - 0.36) / 9;   // 줄 높이는 가장 긴 열 기준. 짧은 열은 일찍 끝난다. 좁고 긴 문장은 열이 따로 정한다
+    c.items.forEach((t, i) => {
+      const y = top + 0.36 + i * rh;
+      hr(s, x, y, c.w, LINE, 0.5);
+      s.addText(t, { x, y: y + 0.03, w: c.w, h: rh - 0.05, fontFace: F, fontSize: 9, color: INK2, valign: "middle", margin: 0, isTextBox: true, lineSpacingMultiple: 1.1 });
+    });
+    x += c.w + gap;
+  });
+  foot(s, "14건 중 이번 범위에 넣은 것은 없다. 다음 장에서 우리 데이터 기준으로 나눈다");
+  s.addNotes("참여자가 정리한 목록 그대로. 한 글자도 바꾸지 않았다. 판정은 다음 장.");
+}
 
 tableSlide("08", "그 다음에 할 수 있는 것", "요청 14건을 우리 데이터 기준으로 나누면",
   ["묶음", "요청", "왜 이 묶음인가"],
   [
-    [{ text: "지금 데이터에\n바로 붙는다", bold: true, color: TEAL }, "질문과 답변 (인계 1건에 스레드로)\n의사 보고 양식 SBAR (인계 항목과 같은 구조, 양식 한 벌 더)", "테이블 한두 개 추가로 끝난다"],
-    [{ text: "병원 전산(EMR)\n연동이 먼저", bold: true, color: AMBER }, "처방 누락 잡기 · 처치(주사 등) 알람 · 약 소진일과 연고 유효기간 계산 · 식이 신청 연동", "처방과 투약 데이터가 우리에게 없다"],
-    [{ text: "장비 연동이 먼저", bold: true, color: AMBER }, "호출벨 3회 이상이면 응급 알림 · 활력징후 관제", "디바이스가 있어야 한다"],
+    [{ text: "지금 데이터에\n바로 붙는다", bold: true, color: PEN }, "질문과 답변 (인계 1건에 스레드로)\n의사 보고 양식 SBAR (인계 항목과 같은 구조, 양식 한 벌 더)", "테이블 한두 개 추가로 끝난다"],
+    [{ text: "병원 전산(EMR)\n연동이 먼저", bold: true, color: INK }, "처방 누락 잡기 · 처치(주사 등) 알람 · 약 소진일과 연고 유효기간 계산 · 식이 신청 연동", "처방과 투약 데이터가 우리에게 없다"],
+    [{ text: "장비 연동이 먼저", bold: true, color: INK }, "호출벨 3회 이상이면 응급 알림 · 활력징후 관제", "디바이스가 있어야 한다"],
     [{ text: "다른 문제", bold: true, color: MUTED }, "근무표 자동 생성(처음부터 범위 밖) · 원무과 ADL 입력 · AI 신환 리포트 · 퇴원 설문", "우리가 푼 문제(인계와 결원)와 다른 문제"],
   ],
   [2.0, 4.4, 2.4],
-  { foot: "14건 중 지금 모델에 바로 붙는 건 2건. 나머지는 연동이 먼저다. 그래서 이번 범위를 안 넓혔다",
+  { foot: "바로 붙는 건 2건, 나머지는 연동이 먼저. 작성자만 수정·넘긴 뒤 불변·지우지 않음은 우리 403·409·DELETE 없음과 같았다",
     notes: "요청을 기능 목록이 아니라 '우리 데이터로 되는가'로 나눈 것이 정합성의 연장이다. 하나도 구현하지 않았다." });
 
 {
@@ -697,11 +771,11 @@ tableSlide("08", "그 다음에 할 수 있는 것", "요청 14건을 우리 데
   cards.forEach((c, i) => {
     const x = M + i * (cw + 0.3);
     hr(s, x, 1.14, cw, LINE, 0.5);
-    s.addText(c.n, { x, y: 1.2, w: cw, h: 0.56, fontFace: FL, fontSize: 34, color: TEAL, margin: 0, isTextBox: true });
+    s.addText(c.n, { x, y: 1.2, w: cw, h: 0.56, fontFace: FL, fontSize: 34, color: PEN, margin: 0, isTextBox: true });
     s.addText(c.t, { x, y: 1.78, w: cw, h: 0.26, fontFace: FSB, fontSize: 11.5, color: INK, margin: 0, isTextBox: true });
     s.addText(c.d, { x, y: 2.06, w: cw, h: 0.6, fontFace: F, fontSize: 10, color: INK2, margin: 0, isTextBox: true, lineSpacingMultiple: 1.2 });
   });
-  s.addShape(p.ShapeType.rect, { x: M, y: 2.95, w: 0.05, h: 1.3, fill: { color: TEAL } });
+  s.addShape(p.ShapeType.rect, { x: M, y: 2.95, w: 0.05, h: 1.3, fill: { color: PEN }, line: { type: "none" } });
   s.addText("국내 종합병원 병동 한 곳의 운영 방식을 기준으로 설계했습니다. 현직 간호사 한 분께 확인했고, 병동마다 운영이 다르다는 것도 같은 분께 들었습니다.",
     { x: M + 0.24, y: 2.95, w: W - 2 * M - 0.3, h: 0.6, fontFace: FSB, fontSize: 11.5, color: INK, valign: "middle", margin: 0, isTextBox: true, lineSpacingMultiple: 1.2 });
   s.addText("공식 의무기록은 병원 전산이 맡습니다. 인계 메모는 그와 따로 관리됩니다. 이 서비스는 그 인계 메모를 맡아서, 누가 썼고 누가 받아 확인했고 무엇이 바뀌었는지를 남깁니다.",
@@ -714,6 +788,7 @@ tableSlide("08", "그 다음에 할 수 있는 것", "요청 14건을 우리 데
   const s = slide(null, { bare: true });
   ring(s, M, 1.9, 0.7);
   s.addText("감사합니다", { x: M, y: 2.8, w: W - 2 * M, h: 0.8, fontFace: FX, fontSize: 34, color: INK, charSpacing: -1, margin: 0, isTextBox: true });
+  s.addText("근무표가 끝나는 지점에서 시작한다.", { x: M, y: 3.7, w: W - 2 * M, h: 0.5, fontFace: HAND, fontSize: 22, color: INK2, margin: 0, isTextBox: true });
 }
 
 p.writeFile({ fileName: OUT }).then(() => console.log("done →", OUT, "·", pageNo, "장"));
