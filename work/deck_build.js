@@ -3,6 +3,7 @@
  *   node work/deck_build.js        (레포 루트에서 실행 · pptxgenjs 필요 · Pretendard 글꼴 설치 필요)
  *   → deliverables/…-개요.pptx     PowerPoint 가 그 파일을 열고 있으면 중단한다(28라운드 사고 방지)
  *   node work/deck_build.js --talk → deliverables/…-발표용.pptx  TALK_KEEP 의 장만 만들고, 살아남은 섹션만 다시 번호를 매긴다(R171)
+ *                                    발표 대본은 TALK_NOTES 가 단일 출처 — 장마다 노트로 들어간다. 고칠 대본은 여기 적는다(R174)
  *
  * ⚠️ 이 파일이 만드는 pptx 는 **생성 시점의 판단을 굳힌다.**
  *    설계 판정이 바뀌면 여기부터 고치고 다시 돌린다 (26라운드 R152 의 교훈).
@@ -65,6 +66,36 @@ p.layout = "LAYOUT_16x9";
 p.author = "황재원"; p.company = "SKALA 10반";
 p.title = "너와 나의 인계고리 — 프로젝트 기술서";
 
+/* 발표 대본의 단일 출처(R174). --talk 로 만들 때 각 장의 노트가 된다. 제목 = 슬라이드 제목. 말투는 사용자 노트 원본(커밋 9919e85)을 유지하고 5분에 맞춰 줄였다(약 1,850자 · 분당 360자) */
+const TALK_NOTES = {
+  "표지": "제목은 너와 나의 인계고리입니다.",
+  "교대할 때 무슨 일이 일어나나": "간호사는 하루에 세 번 교대를 합니다. 나가는 사람이 들어오는 사람에게 환자 상태를 넘기는 걸 인계라고 하고, 기록의 책임을 갖는 차지 간호사가 다음 차지에게 전달합니다. 현직 간호사 한 분께 뭐가 불편한지 종종 들었습니다. 문제는 둘입니다. 넘겼다는 기록은 전산에 남지만 받았다는 기록은 안 남습니다. 한밤중에 메신저로 인계에서 오해한 부분을 다시 물어보는 걸 많이 봤습니다. 그리고 결원이 생기면 수간호사가 일일이 표를 고치고 메신저로 알립니다. 지금 배정이 뭔지, 왜 바뀐 건지는 안 남습니다.",
+  "그래서 이 서비스는 세 가지를 한다": "서비스는 세 가지를 합니다. 수간호사가 누가 어느 환자의 인계를 맡을지 정합니다. 차지는 병동이 정한 항목을 작성하고 넘깁니다. 다음 차지는 자기만의 언어로 정리하고, 확인했다는 기록이 남습니다. 결원이 생기면 다시 1로 돌아갑니다.",
+  "무엇을 만들었나": "한 줄로 하면 누가 뭘 맡았고 뭘 주고받았는지 기록이 남는 서비스입니다. 근무표의 그 다음 칸을 붙였습니다.",
+  "누가 쓰나": "액터는 둘입니다. 수간호사는 병동 전체를 보고 근무표, 역할, 인계 담당을 정하고 결원이면 재배정합니다. 간호사는 내 근무와 우리 팀 환자, 내가 맡은 인계만 봅니다. 차지면 쓰고 받고, 액팅이면 읽기만. 다른 병동 사람은 아무것도 못 봅니다.",
+  "기능": "기능은 6개인데 핵심은 둘입니다. F-04가 첫 번째 불편, F-05가 두 번째 불편에 대한 답입니다.",
+  "화면 흐름": "로그인에서 두 갈래, 왼쪽이 수간호사, 오른쪽이 간호사입니다. 실선은 화면 이동, 점선은 데이터가 넘어가는 길입니다.",
+  "화면들을 읽는 법": "다음 화면들은 실제로 도는 데모를 찍은 캡처입니다. 가상 데이터입니다.",
+  "간호사 첫 화면": "GET 하나로 내 근무와 역할, 우리 팀 환자를 한 번에 가져옵니다. 나에게 온 인계와 내가 넘길 인계가 한 화면에 있고, 작성 버튼은 액팅에게는 없습니다.",
+  "인계 쓰기": "병동 양식이 그대로 복사되고, 양식이 바뀌어도 이미 쓴 인계는 안 바뀝니다. 필수 항목이 비면 넘길 수 없고, 넘기면 전달됨이 되고 고칠 수 없습니다. 받을 사람은 요청에 없습니다. 서버가 다음 근무 담당을 고릅니다.",
+  "인계 받기": "들어오는 순간 열어봤다는 시점이 기록됩니다. 받은 사람은 자기 말로 요약을 쓰고 확인 처리합니다. 요약이 없으면 확인이 안 됩니다. 이게 받았다는 기록입니다.",
+  "결원 재배정": "4단계입니다. 결원 등록, 대체자 배정, 인계 담당 이관, 대체 완료 확인. 사유는 한 번만 쓰고 나머지는 서버가 복사합니다. 원래 인계는 지우지 않고 대체됨으로 두고 새 인계를 발행합니다.",
+  "수간호사 첫 화면": "수간호사 첫 화면에선 병동의 현 상황을 파악할 수 있습니다.",
+  "역할과 인계 담당 정하기": "간호사마다 차지, 서브차지, 액팅을 고르고 어느 입원 건의 인계를 맡을지 정합니다.",
+  "나머지 화면 1": "나머지 화면들입니다.",
+  "나머지 화면 2": "뭘 바꾸고 썼는지 모든 기록이 남습니다.",
+  "핵심 데이터": "데이터 모델은 12개 테이블, 7개 enum입니다. 인계 한 건은 이 여섯 개만 따라가면 됩니다. 인계 담당은 사람이 아니라 근무에 붙습니다. 인계도 사람 사이가 아니라 담당 사이에서 흐릅니다. 받았다는 기록은 따로 뒀습니다. 인계 항목은 복사본이라 양식을 고쳐도 지난 기록이 안 바뀝니다. 담당이 바뀌어도 이전 기록을 지우지 않습니다.",
+  "전체 12개": "전체 ERD입니다. 조직과 사람, 근무·환자·담당, 인계 세 묶음이라는 것만 알고 넘기겠습니다.",
+  "API 명세": "OpenAPI로 24개입니다. 화면 11개의 동작을 먼저 세고 겹치는 걸 빼서 24개. 공통 스키마는 components에 두고 $ref로 재사용했습니다.",
+  "API 24개": "DELETE가 없습니다. 지울 사건이 없어서입니다. 결원, 이관, 대체, 퇴원 전부 상태로 남깁니다.",
+  "일부러 요청에서 안 받는 값": "화면이 정하게 두면 깨지는 값들은 body에서 일부러 뺐습니다. 규칙을 한 곳에 두기 위해서입니다.",
+  "막을 때 주는 답": "막는 이유가 다르면 답도 달라야 합니다. 403은 권한, 409는 지금 상태에선 안 된다, 422는 보낸 내용이 모자라다. 섞지 않았습니다. 400은 프레임워크 기본입니다.",
+  "못 한 것": "공식 의무기록은 병원 전산 EMR이 맡고, 제 설계는 인계 메모만 맡습니다. 현장에선 이걸 카덱스라고 하는데, 통합적으로 작용한다면 대체해도 괜찮겠다는 조건부 의견을 들었습니다.",
+  "써 본 사람의 말": "현직 간호사 한 분이 데모를 직접 썼고, 말한 그대로 옮겼습니다. 한눈에 확인돼서 좋았다, 가장 먼저 원한 건 질문 기능. 작성자만 고친다는 현장 규칙은 설계와 맞았습니다.",
+  "어떻게 확인했나": "국내 종합병원 한 병동 기준입니다. 인터뷰 한 번, 세션 한 번, 리뷰 32라운드. 데모로 규칙을 전부 돌려 어긋난 곳 0.",
+  "감사합니다": "근무표가 끝나는 지점에서 시작한다. 감사합니다.",
+};
+
 /* 섹션 이름의 단일 출처 — 목차와 바닥글이 같이 읽는다 */
 const SECTIONS = [["01", "무엇을 만들었나"], ["02", "무엇이 불편했고 어떻게 풀었나"], ["03", "누가 쓰고, 어디까지 보나"], ["04", "화면 흐름"],
                   ["05", "화면마다 도는 API"], ["06", "데이터를 나눈 방법"], ["07", "API 24개와 막는 규칙"], ["08", "고민한 것, 못 한 것"]];
@@ -83,11 +114,14 @@ const want = (title) => !TALK || title == null || TALK_KEEP.some((k) => k[0] ===
 const ACTIVE = TALK ? SECTIONS.filter((sec) => TALK_KEEP.some((k) => k[1] === sec[0])) : SECTIONS;   // 탭·바닥글이 읽는 섹션
 const secLabel = (sec) => String(ACTIVE.findIndex((it) => it[0] === sec) + 1).padStart(2, "0");      // 살아남은 순서로 다시 번호
 const usedSecs = new Set();
+const MADE = [];   // 만든 슬라이드. 끝에서 발표용 노트를 붙인다
+/* 노트: 제출용은 내부 메모(설계 근거), 발표용은 TALK_NOTES 의 대본 */
+function noteOf(s, t) { if (!TALK && t) s.addNotes(t); }
 let pageNo = 0;
 
 /* ---------- 공통 ---------- */
 function slide(sec, opt) {
-  const s = p.addSlide(); s.background = { color: PAPER }; pageNo += 1;
+  const s = p.addSlide(); s.background = { color: PAPER }; pageNo += 1; MADE.push(s);
   for (let y = 0.9; y < H - 0.7; y += 0.25) hr(s, M, y, W - 2 * M, RULE_SOFT, 0.5);   // 괘선 종이
   if (!(opt && opt.bare)) {
     s.addText(String(pageNo), { x: W - M - 0.5, y: H - 0.34, w: 0.5, h: 0.2, fontFace: FM, fontSize: 8, color: MUTED, align: "right", margin: 0, isTextBox: true });
@@ -117,6 +151,7 @@ function badge(s, kind, x, y, d, n, fs, onImage) {
 const kindColor = (k) => (k === "nav" ? INK : PEN);
 function hr(s, x, y, w, color, pt) { s.addShape(p.ShapeType.line, { x, y, w, h: 0, line: { color: color || LINE, width: pt || 0.5 } }); }
 function titleBar(s, title, sub) {
+  s._title = title;
   s.addText(title, { x: M, y: 0.32, w: W - 2 * M, h: 0.5, fontFace: FX, fontSize: 25, color: INK, charSpacing: TR, valign: "middle", margin: 0, isTextBox: true });
   if (sub) s.addText(sub, { x: M, y: 0.88, w: W - 2 * M, h: 0.26, fontFace: FL, fontSize: 12, color: INK2, valign: "middle", margin: 0, isTextBox: true });
 }
@@ -150,13 +185,14 @@ function tableSlide(sec, title, sub, header, rows, colW, opt) {
   const rowH = [0.38].concat(rows.map(() => bodyH));
   s.addTable(body, { x: opt.x || M, y: ty, w: opt.w || (W - 2 * M), colW, rowH, fontFace: F, valign: "middle", margin: [6, 8, 6, 8], autoPage: false });
   if (opt.foot) foot(s, opt.foot);
-  if (opt.notes) s.addNotes(opt.notes);
+  if (opt.notes) noteOf(s, opt.notes);
   return s;
 }
 
 /* 왼쪽 레일형: 점 목록. 제목이 왼쪽 열에, 항목이 오른쪽에 */
 const RAIL = 2.55, RGAP = 0.35;
 function railTitle(s, title, sub) {
+  s._title = title;
   s.addText(title, { x: M, y: 0.32, w: RAIL, h: 1.3, fontFace: FX, fontSize: 22, color: INK, charSpacing: TR, valign: "top", margin: 0, isTextBox: true, lineSpacingMultiple: 1.05 });
   if (sub) s.addText(sub, { x: M, y: 1.7, w: RAIL, h: 1.2, fontFace: FL, fontSize: 11.5, color: INK2, valign: "top", margin: 0, isTextBox: true, lineSpacingMultiple: 1.25 });
 }
@@ -175,7 +211,7 @@ function pointsSlide(sec, title, sub, items, opt) {
       { x: x0 + 0.55, y, w: cw - 0.55, h, valign: "middle", margin: 0, isTextBox: true, lineSpacingMultiple: 1.15 });
   });
   if (opt.foot) foot(s, opt.foot);
-  if (opt.notes) s.addNotes(opt.notes);
+  if (opt.notes) noteOf(s, opt.notes);
   return s;
 }
 
@@ -187,7 +223,7 @@ function bigImage(sec, title, sub, file, footTxt, notes) {
   const ar = IW / IH; let h = ah, w = h * ar; if (w > aw) { w = aw; h = w / ar; }
   s.addImage({ path: file, x: M + (aw - w) / 2, y: ay + (ah - h) / 2, w, h });
   if (footTxt) foot(s, footTxt);
-  if (notes) s.addNotes(notes);
+  if (notes) noteOf(s, notes);
   return s;
 }
 
@@ -207,7 +243,7 @@ function rowImages(sec, title, sub, items, footTxt, notes) {
       { x, y: ay + ah + 0.08, w: cw, h: cap - 0.08, align: "left", valign: "top", margin: 0, isTextBox: true, lineSpacingMultiple: 1.1 });
   });
   if (footTxt) foot(s, footTxt);
-  if (notes) s.addNotes(notes);
+  if (notes) noteOf(s, notes);
   return s;
 }
 
@@ -246,17 +282,17 @@ function annotated(sec, title, sub, imgId, callouts, opt) {
     s.addText(body, { x: cx + 0.32, y: cy + 0.04, w: colW - 0.34, h: chh - 0.08, valign: "middle", margin: 0, isTextBox: true, lineSpacingMultiple: 1.1 });
   });
   if (opt.foot) foot(s, opt.foot);
-  if (opt.notes) s.addNotes(opt.notes);
+  if (opt.notes) noteOf(s, opt.notes);
   return s;
 }
 
 /* ============================================================ 표지 */
 {
-  const s = slide(null, { bare: true });   // 사용자가 PowerPoint 로 만든 표지를 그대로 옮겼다(커밋 8d105e4 · R171): 고리 마크 없음, 제목·부제 손글씨
+  const s = slide(null, { bare: true }); s._title = "표지";   // 사용자가 PowerPoint 로 만든 표지를 그대로 옮겼다(커밋 8d105e4 · R171): 고리 마크 없음, 제목·부제 손글씨
   s.addText("너와 나의 인계고리", { x: M, y: 2.8125, w: W - 2 * M, h: 1.0, fontFace: HAND, fontSize: 46, color: INK, charSpacing: -1.6, valign: "middle", margin: 0, isTextBox: true });
   s.addText("간호사 교대근무 인계·배정 웹서비스", { x: M, y: 3.864, w: W - 2 * M, h: 0.3, fontFace: HAND, fontSize: 18, color: INK2, valign: "middle", margin: 0, isTextBox: true });
   s.addText("SKALA 4기 웹서비스 미니프로젝트  판교캠퍼스 10반 P345 황재원   2026. 9. 17.", { x: M, y: H - 0.72, w: W - 2 * M, h: 0.26, fontFace: FM, fontSize: 9.5, color: MUTED, margin: 0, isTextBox: true });
-  s.addNotes("첫 마디: 근무표는 누가 나오는지까지만 말합니다. 그 다음 고리가 비어 있습니다.");
+  noteOf(s, "첫 마디: 근무표는 누가 나오는지까지만 말합니다. 그 다음 고리가 비어 있습니다.");
 }
 
 /* 30라운드 — 도메인 0 인 사람이 3장 안에 시스템을 읽게 하는 앞 2장 */
@@ -280,7 +316,7 @@ if (want("교대할 때 무슨 일이 일어나나")) {
     s.addText([{ text: r[1] + "\n", options: { fontFace: FSB, fontSize: 12.5, color: INK } }, { text: r[2], options: { fontFace: F, fontSize: 10.5, color: INK2 } }], { x: M + 0.55, y: py + 0.1, w: W - 2 * M - 0.6, h: 0.7, valign: "middle", margin: 0, isTextBox: true, lineSpacingMultiple: 1.15 });
   });
   foot(s, "한 팀의 책임 간호사를 \"차지\"라고 부른다. 인계는 차지가 쓰고 다음 근무의 차지가 받는다. 이 발표에 필요한 말은 이게 전부다 [C]");
-  s.addNotes("도메인 모르는 사람 기준 첫 장. 교대·인계·차지 세 단어만 소개한다.");
+  noteOf(s, "도메인 모르는 사람 기준 첫 장. 교대·인계·차지 세 단어만 소개한다.");
 }
 if (want("그래서 이 서비스는 세 가지를 한다")) {
   const s = slide(null); titleBar(s, "그래서 이 서비스는 세 가지를 한다", null);
@@ -299,7 +335,7 @@ if (want("그래서 이 서비스는 세 가지를 한다")) {
   s.addShape(p.ShapeType.rect, { x: M, y: by + 0.08, w: 0.05, h: 0.56, fill: { color: PEN }, line: { type: "none" } });
   s.addText([{ text: "누가 못 나오면 1로 돌아가 다시 정한다.  ", options: { fontFace: FSB, fontSize: 12, color: INK } }, { text: "바뀐 내용은 당사자 화면에 바로 뜨고, 왜 바꿨는지가 같이 남는다", options: { fontFace: F, fontSize: 10.5, color: INK2 } }], { x: M + 0.24, y: by, w: W - 2 * M - 0.48, h: 0.72, valign: "middle", margin: 0, isTextBox: true });
   foot(s, "하지 않는 것: 근무표 만들기 · 병원 전산(EMR) 연동 · 실제 환자정보 · 의학적 판단");
-  s.addNotes("세 동사만 기억시키면 뒤 화면이 전부 이 셋 중 하나로 보인다.");
+  noteOf(s, "세 동사만 기억시키면 뒤 화면이 전부 이 셋 중 하나로 보인다.");
 }
 
 /* ============================================================ 01 */
@@ -325,7 +361,7 @@ if (want("무엇을 만들었나")) {
   s.addText([{ text: "하지 않은 것   ", options: { fontFace: FM, color: PEN, fontSize: 10.5 } },
              { text: "근무표 자동 생성, 병원 전산(EMR) 연동, 실제 환자정보, 의학적 판단이나 추천, 교육·급여·알람", options: { fontFace: F, color: INK2, fontSize: 10.5 } }],
     { x: M, y: 3.85, w: W - 2 * M, h: 0.3, valign: "middle", margin: 0, isTextBox: true });
-  s.addNotes("정의 한 문장을 그대로 읽고, '하지 않은 것'으로 범위를 먼저 닫는다.");
+  noteOf(s, "정의 한 문장을 그대로 읽고, '하지 않은 것'으로 범위를 먼저 닫는다.");
 }
 
 /* 목차 — SECTIONS 를 그대로 읽는다 */
@@ -358,7 +394,7 @@ if (want("알아야 할 단어")) {
     s.addText(x.d, { x: M + 1.5, y, w: W - 2 * M - 1.5, h: hh, fontFace: F, fontSize: 11.5, color: INK, valign: "middle", margin: 0, isTextBox: true });
   });
   foot(s, "한 병동 기준. 병원마다, 병동마다 다르다는 것도 같은 인터뷰에서 들었다 [C]");
-  s.addNotes("여기서 20초 쓰면 나머지 4분이 다 들린다. 차지와 액팅의 차이가 인계 권한의 근거.");
+  noteOf(s, "여기서 20초 쓰면 나머지 4분이 다 들린다. 차지와 액팅의 차이가 인계 권한의 근거.");
 }
 
 tableSlide("01", "비슷한 서비스는 없었나", null,
@@ -471,7 +507,7 @@ if (want("화면들을 읽는 법")) {
     s.addText(r[2], { x: M + 1.8, y, w: W - 2 * M - 1.9, h: 0.96, fontFace: F, fontSize: 12.5, color: INK, valign: "middle", margin: 0, isTextBox: true });
   });
   foot(s, "캡처는 전부 실제로 도는 데모에서 찍었다. 가상 데이터이고, 화면에 보이는 주소가 그대로 API 명세의 주소");
-  s.addNotes("범례를 화면 파트 맨 앞에 두면 이후 6장이 다 읽힌다.");
+  noteOf(s, "범례를 화면 파트 맨 앞에 두면 이후 6장이 다 읽힌다.");
 }
 
 annotated("05", "간호사 첫 화면", "내 근무, 우리 팀 환자, 받은 인계와 보낼 인계", "8_myshift_nurse", [
@@ -559,7 +595,7 @@ if (want("핵심 데이터")) {
       { x: cx, y: y + 0.04, w: cw, h: chh - 0.08, valign: "middle", margin: 0, isTextBox: true, lineSpacingMultiple: 1.12 });
   });
   foot(s, "PK·FK 와 관계(1:N, 1:1)는 그림에, 속성 타입·unique·not null 같은 제약조건은 DBML 에. 수신 기록은 인계당 1건(unique)");
-  s.addNotes("이 6개만 따라가면 인계 한 건의 일생이 설명된다. 나머지 6개는 병동, 팀, 사용자, 역할, 양식, 이력.");
+  noteOf(s, "이 6개만 따라가면 인계 한 건의 일생이 설명된다. 나머지 6개는 병동, 팀, 사용자, 역할, 양식, 이력.");
 }
 
 bigImage("06", "전체 12개", "자세히 읽는 그림이 아니라 얼마나 나뉘어 있는지 보는 지도",
@@ -647,7 +683,7 @@ if (want("API 24개")) {
     s.addTable(body, { x, y: 1.28, w: cw, colW: [0.42, cw - 1.57, 1.15], fontFace: F, valign: "middle", margin: [3, 4, 3, 4] });
   });
   foot(s, "화면 11개의 동작 25가지를 먼저 세고, 겹치는 것(역할 지정은 배정 화면과 재배정 화면이 같이 쓴다)을 빼서 24개");
-  s.addNotes("배점 20점 파트. '화면에서 세어서 만들었다'는 순서를 꼭 말한다.");
+  noteOf(s, "배점 20점 파트. '화면에서 세어서 만들었다'는 순서를 꼭 말한다.");
 }
 
 if (want("일부러 요청에서 안 받는 값")) {
@@ -673,7 +709,7 @@ if (want("일부러 요청에서 안 받는 값")) {
   s.addShape(p.ShapeType.rect, { x: W - M - iw, y: 1.28, w: iw, h: ih, fill: { type: "none" }, line: { color: LINE, width: 0.75 } });
   s.addText("인계 작성 요청. 받을 사람 칸이 없다", { x: W - M - iw, y: 1.28 + ih + 0.08, w: iw, h: 0.28, fontFace: F, fontSize: 9.5, color: MUTED, margin: 0, isTextBox: true });
   foot(s, "화면이 요청에 넣는 번호는 반드시 어떤 조회 API 가 돌려준 값이어야 한다. 이 규칙이 없어 생긴 구멍을 검증 단계에서 찾았다");
-  s.addNotes("서버가 정하는 건 편의가 아니라 규칙을 한 곳에 두는 것.");
+  noteOf(s, "서버가 정하는 건 편의가 아니라 규칙을 한 곳에 두는 것.");
 }
 
 tableSlide("07", "막을 때 주는 답", "막는 이유가 다르면 답도 달라야 한다",
@@ -729,7 +765,7 @@ if (want("써 본 사람의 말")) {
     y += hs[i];
   });
   foot(s, "[C] 현직 간호사 1명 · 데모를 써 본 뒤 대면으로 · 편의표본 · 말한 그대로, 해석은 뒤 두 장에");
-  s.addNotes("과제 형식은 안 했고 자유롭게 써 보게 했다. 정량 기록은 없다. 설계와 맞은 규칙 셋(작성자만 수정 403 · 넘긴 뒤 불변 409 · DELETE 없음)은 말로 잇는다. 열람 범위(현장은 병동 전체)는 우리가 더 좁아 보완으로 뒀다.");
+  noteOf(s, "과제 형식은 안 했고 자유롭게 써 보게 했다. 정량 기록은 없다. 설계와 맞은 규칙 셋(작성자만 수정 403 · 넘긴 뒤 불변 409 · DELETE 없음)은 말로 잇는다. 열람 범위(현장은 병동 전체)는 우리가 더 좁아 보완으로 뒀다.");
 }
 
 if (want("요청 목록, 정리한 그대로")) {
@@ -765,7 +801,7 @@ if (want("요청 목록, 정리한 그대로")) {
     x += c.w + gap;
   });
   foot(s, "14건 중 이번 범위에 넣은 것은 없다. 다음 장에서 우리 데이터 기준으로 나눈다");
-  s.addNotes("참여자가 정리한 목록 그대로. 한 글자도 바꾸지 않았다. 판정은 다음 장.");
+  noteOf(s, "참여자가 정리한 목록 그대로. 한 글자도 바꾸지 않았다. 판정은 다음 장.");
 }
 
 tableSlide("08", "그 다음에 할 수 있는 것", "요청 14건을 우리 데이터 기준으로 나누면",
@@ -801,11 +837,11 @@ if (want("어떻게 확인했나")) {
   s.addText("공식 의무기록은 병원 전산이 맡습니다. 인계 메모는 그와 따로 관리됩니다. 이 서비스는 그 인계 메모를 맡아서, 누가 썼고 누가 받아 확인했고 무엇이 바뀌었는지를 남깁니다.",
     { x: M + 0.24, y: 3.59, w: W - 2 * M - 0.3, h: 0.66, fontFace: F, fontSize: 11.5, color: INK2, valign: "middle", margin: 0, isTextBox: true, lineSpacingMultiple: 1.2 });
   foot(s, "근무표가 끝나는 지점에서 시작한다. 누가 인계를 맡았고, 누가 받아 확인했는지");
-  s.addNotes("마지막 문장을 표지의 문장과 이어 닫는다.");
+  noteOf(s, "마지막 문장을 표지의 문장과 이어 닫는다.");
 }
 
 {
-  const s = slide(null, { bare: true });
+  const s = slide(null, { bare: true }); s._title = "감사합니다";
   ring(s, M, 1.9, 0.7);
   s.addText("감사합니다", { x: M, y: 2.8, w: W - 2 * M, h: 0.8, fontFace: FX, fontSize: 34, color: INK, charSpacing: -1, margin: 0, isTextBox: true });
   s.addText("근무표가 끝나는 지점에서 시작한다.", { x: M, y: 3.7, w: W - 2 * M, h: 0.4, fontFace: FL, fontSize: 14, color: INK2, margin: 0, isTextBox: true });
@@ -814,4 +850,5 @@ if (want("어떻게 확인했나")) {
 const missing = ACTIVE.filter((it) => !usedSecs.has(it[0])).map((it) => it[0]);
 if (missing.length) throw new Error("ACTIVE 에 있는데 장이 하나도 없는 섹션: " + missing.join(", "));
 if (TALK) { const n = 2 + TALK_KEEP.length; if (pageNo !== n) throw new Error("발표용 장 수가 " + pageNo + " (기대 " + n + ") — TALK_KEEP 제목이 슬라이드 제목과 다르다"); }
+if (TALK) MADE.forEach((s) => { const t = TALK_NOTES[s._title]; if (!t) throw new Error("발표용 노트가 없는 장: " + s._title); s.addNotes(t); });
 p.writeFile({ fileName: OUT }).then(() => console.log("done →", OUT, "·", pageNo, "장 · 섹션 " + ACTIVE.map((it) => secLabel(it[0])).join(",")));
