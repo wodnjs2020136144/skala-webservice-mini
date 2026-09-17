@@ -7,7 +7,7 @@
   - 지우기만 하고 추가하지 않으므로 파트 이름 충돌이 없다(29라운드 교훈)
   - 표지(첫 장)와 마지막 장(감사합니다)은 항상 남긴다. 페이지 번호는 1부터 다시 매긴다
 """
-import os, shutil, sys
+import os, shutil, subprocess, sys, unicodedata
 from pptx import Presentation
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -44,8 +44,19 @@ def titles_of(sl):
 def matches(k, t):   # k 는 문자열 또는 대체 제목 튜플
     return any(x in t for x in (k if isinstance(k, tuple) else (k,)))
 
-shutil.copyfile(SRC, OUT)
-prs = Presentation(OUT)
+def powerpoint_has(name):
+    try:
+        out = subprocess.run(['osascript', '-e', 'tell application "Microsoft PowerPoint" to return name of every presentation'],
+                             capture_output=True, text=True, timeout=10).stdout
+    except Exception:
+        return False
+    return unicodedata.normalize('NFD', os.path.basename(name)) in unicodedata.normalize('NFD', out)
+
+if powerpoint_has(OUT):
+    sys.exit('중단: PowerPoint 가 발표용 파일을 열고 있다. 닫고 다시 실행할 것')
+TMP = OUT + '.tmp'
+shutil.copyfile(SRC, TMP)          # 검사가 끝나기 전엔 OUT 을 건드리지 않는다(코덱스 R168)
+prs = Presentation(TMP)
 lst = prs.slides._sldIdLst
 kept, dropped = [], 0
 pairs = list(zip(list(lst), list(prs.slides)))
@@ -59,7 +70,7 @@ for i, (el, sl) in enumerate(pairs):
 
 missing = [k for k in KEEP if (k[0] if isinstance(k, tuple) else k) not in kept]
 if missing:
-    sys.exit('중단: 제출용에서 못 찾은 장 — %s' % missing)
+    os.remove(TMP); sys.exit('중단: 제출용에서 못 찾은 장 — %s' % missing)
 
 n = 0
 for idx, sl in enumerate(prs.slides, 1):
@@ -68,6 +79,6 @@ for idx, sl in enumerate(prs.slides, 1):
             for para in sh.text_frame.paragraphs:
                 for r in para.runs: r.text = ''
             sh.text_frame.paragraphs[0].runs[0].text = str(idx); n += 1
-prs.save(OUT)
+prs.save(TMP); os.replace(TMP, OUT)
 print('발표용 → %s  (%d 장 · %d 장 지움 · 페이지 번호 %d 곳)' % (OUT, len(prs.slides), dropped, n))
 for i, k in enumerate(kept, 1): print('  %2d  %s' % (i, k))

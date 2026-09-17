@@ -41,7 +41,8 @@ const OUT = path.join(ROOT, "deliverables", "10반_황재원_너와나의인계�
 /* 열린 파일은 덮지 않는다 */
 try {
   const open = execSync('osascript -e \'tell application "Microsoft PowerPoint" to return name of every presentation\'', { encoding: "utf8", timeout: 8000 });
-  if (open.includes(path.basename(OUT))) { console.error("중단: PowerPoint 가 " + path.basename(OUT) + " 를 열고 있다. 닫고 다시 실행할 것"); process.exit(2); }
+  const nfd = (t) => t.normalize("NFD");   // macOS 파일명은 NFD, JS 리터럴은 NFC — 같은 형으로 맞춰 비교한다(코덱스 R168)
+  if (nfd(open).includes(nfd(path.basename(OUT)))) { console.error("중단: PowerPoint 가 " + path.basename(OUT) + " 를 열고 있다. 닫고 다시 실행할 것"); process.exit(2); }
 } catch (e) { /* PowerPoint 가 없거나 응답 없음 — 진행 */ }
 
 /* ---------- 토큰 ---------- */
@@ -554,7 +555,7 @@ tableSlide("06", "결원 기록은 두 층", "근무 자리가 빈 것과, 맡�
     notes: "한 컬럼으로 여러 테이블을 가리키는 방식을 안 쓴 이유: 외래키 제약을 걸 수 없다." });
 
 /* ============================================================ 07 API */
-bigImage("07", "API 명세", "24개, 주소 21개, 명세 오류 0",
+bigImage("07", "API 명세", "24개 전부. 주소 21개, 명세 오류 0",
   A("swagger_full.png"),
   "공통 응답 봉투·오류 형식·스키마 24개를 components 에 두고 $ref 로 164회 재사용했다. 로그인·인증은 병원 시스템 몫이라 명세에 없다",
   "화면 11개에서 일어나는 동작 25가지를 먼저 세고, 겹치는 것을 빼 24개가 됐다.");
@@ -656,7 +657,7 @@ pointsSlide("08", "고민했던 것", null, [
 ], { notes: "버린 안과 그 이유를 적는 게 채택안만 적는 것보다 강하다." });
 
 pointsSlide("08", "못 한 것", null, [
-  { n: "1", t: "병원 전산(EMR)과 연결이 없다", d: "공식 의무기록은 병원 전산이 맡고, 이 설계는 인계 메모만. 실제로 대체되는지는 아직 확인 전이라 같이 쓰면 두 번 입력하게 된다", color: AMBER },
+  { n: "1", t: "병원 전산(EMR)과 연결이 없다", d: "공식 의무기록은 병원 전산이 맡고, 이 설계는 인계 메모만. 카덱스를 대체하는지는 \"통합적으로 작용한다면\"이 조건인 긍정 [C]. 통합이 안 되면 병행이고 두 번 입력하게 된다", color: AMBER },
   { n: "2", t: "요약을 성의 있게 썼는지는 못 본다", d: "칸이 비었는지만 검사. 한 글자만 적어도 '확인됨'이 된다. 남기는 건 \"누가 언제 자기 말로 적었는가\"까지", color: AMBER },
   { n: "3", t: "차지가 인계를 안 써도 못 막는다", d: "액팅이 \"이건 적어 주세요\"라고 한 걸 반영했는지 이력으로 남기는 건 범위 밖", color: AMBER },
   { n: "4", t: "확인해 준 분이 한 명", d: "간호사 화면은 한 분께 확인받았고, 수간호사 화면은 아직 가설", color: AMBER },
