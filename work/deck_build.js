@@ -2,7 +2,7 @@
  *
  *   node work/deck_build.js        (레포 루트에서 실행 · pptxgenjs 필요 · Pretendard 글꼴 설치 필요)
  *   → deliverables/…-개요.pptx     PowerPoint 가 그 파일을 열고 있으면 중단한다(28라운드 사고 방지)
- *   → 발표용은 tools/make_talk_deck.py 가 이 파일의 출력에서 장을 골라 만든다
+ *   node work/deck_build.js --talk → deliverables/…-발표용.pptx  TALK_KEEP 의 장만 만들고, 살아남은 섹션만 다시 번호를 매긴다(R171)
  *
  * ⚠️ 이 파일이 만드는 pptx 는 **생성 시점의 판단을 굳힌다.**
  *    설계 판정이 바뀌면 여기부터 고치고 다시 돌린다 (26라운드 R152 의 교훈).
@@ -25,8 +25,8 @@
  *      같은 장에서 두 색으로 갈랐던 곳은 굵기와 검정으로 가른다. 한 장에 항목이 전부 같은 종류면 빨강을 안 쓴다
  *    - 채움은 메모지(MEMO) 한 장에만 — 인터뷰 원문. 나머지는 가로선으로만 나눈다
  *    - 왼쪽 가장자리에 바인더 색인 탭 8개(= SECTIONS). 활성 탭만 빨강. 목차·바닥글·탭이 같은 배열을 읽는다
- *    - 글꼴: Pretendard 굵기 위계(제목 ExtraBold · 부제 Light · 본문 Regular · 라벨 Medium) + 손글씨 Nanum Pen 은 곁글 6곳 상한
- *      (인터뷰 메모지 · 요청 목록 머리 · 교대 그림 "인계" · 마지막 장 한 줄 · 인계 쓰기·받기 각주)
+ *    - 글꼴: Pretendard 굵기 위계(제목 ExtraBold · 부제 Light · 본문 Regular · 라벨 Medium)
+ *    - 손글씨(Nanum Pen)는 **사람이 손으로 쓴 것**에만 — 표지 제목·부제(사용자 디자인 R171), 참여자 원문 메모지. 그 외 0곳
  *    - 말풍선 3종은 색이 아니라 모양: API = 빨간 채움 원 · 화면 이동 = 검은 채움 원 · 예외 = 빨간 테두리 원
  *    - 같은 레이아웃을 연달아 반복하지 않는다: 점 목록은 왼쪽 레일형, 표·캡처는 전폭형
  *
@@ -40,7 +40,8 @@ const { execSync } = require("child_process");
 const ROOT = path.resolve(__dirname, "..");
 const A = (f) => path.join(ROOT, "assets", f);
 const ANCHORS = JSON.parse(fs.readFileSync(A("anchors.json"), "utf8"));
-const OUT = path.join(ROOT, "deliverables", "10반_황재원_너와나의인계고리-개요.pptx");
+const TALK = process.argv.includes("--talk");   // 발표용: TALK_KEEP 의 장만, 섹션 번호는 살아남은 것 기준(R171)
+const OUT = path.join(ROOT, "deliverables", TALK ? "10반_황재원_너와나의인계고리-발표용.pptx" : "10반_황재원_너와나의인계고리-개요.pptx");
 
 /* 열린 파일은 덮지 않는다 */
 try {
@@ -53,7 +54,7 @@ try {
 const PAPER = "F9F8F4", INK = "2B333C", INK2 = "5A6069", MUTED = "8C9199", LINE = "E4E2DB";
 const PEN = "C24A31", MEMO = "FFF3B3", TAB_OFF = "ECEAE3", WHITE = "FFFFFF";   // 강조는 PEN 하나. MEMO 는 인터뷰 원문 한 장에만
 const FX = "Pretendard ExtraBold", FSB = "Pretendard SemiBold", FM = "Pretendard Medium", F = "Pretendard", FL = "Pretendard Light";
-const HAND = "Nanum Pen";   // 손글씨. 곁글 6곳 상한 — 머리 주석 참조
+const HAND = "Nanum Pen";   // 손글씨. 표지 제목·부제와 참여자 원문 메모지에만 — 머리 주석 참조
 const MONO = "Menlo";
 const RULE_SOFT = "EFEDE7";   // 괘선. LINE 보다 옅다
 const W = 10, H = 5.625, M = 0.6;
@@ -68,6 +69,19 @@ p.title = "너와 나의 인계고리 — 프로젝트 기술서";
 const SECTIONS = [["01", "무엇을 만들었나"], ["02", "무엇이 불편했고 어떻게 풀었나"], ["03", "누가 쓰고, 어디까지 보나"], ["04", "화면 흐름"],
                   ["05", "화면마다 도는 API"], ["06", "데이터를 나눈 방법"], ["07", "API 24개와 막는 규칙"], ["08", "고민한 것, 못 한 것"]];
 const SEC = Object.fromEntries(SECTIONS);
+/* 발표용에 남는 장(제목 그대로)과 그 장의 섹션. 표지·마지막 장은 항상. 기준 문서 5·7페이지를 발표용만으로 채우도록 고른다(R167) */
+const TALK_KEEP = [
+  ["교대할 때 무슨 일이 일어나나", null], ["그래서 이 서비스는 세 가지를 한다", null], ["무엇을 만들었나", "01"],
+  ["누가 쓰나", "03"], ["기능", "03"], ["화면 흐름", "04"],
+  ["인계 쓰기", "05"], ["인계 받기", "05"], ["결원 재배정", "05"],
+  ["핵심 데이터", "06"], ["전체 12개", "06"],
+  ["API 명세", "07"], ["API 24개", "07"], ["일부러 요청에서 안 받는 값", "07"], ["막을 때 주는 답", "07"],
+  ["못 한 것", "08"], ["써 본 사람의 말", "08"], ["어떻게 확인했나", "08"],
+];
+const want = (title) => !TALK || title == null || TALK_KEEP.some((k) => k[0] === title);
+const ACTIVE = TALK ? SECTIONS.filter((sec) => TALK_KEEP.some((k) => k[1] === sec[0])) : SECTIONS;   // 탭·바닥글이 읽는 섹션
+const secLabel = (sec) => String(ACTIVE.findIndex((it) => it[0] === sec) + 1).padStart(2, "0");      // 살아남은 순서로 다시 번호
+const usedSecs = new Set();
 let pageNo = 0;
 
 /* ---------- 공통 ---------- */
@@ -76,17 +90,20 @@ function slide(sec, opt) {
   for (let y = 0.9; y < H - 0.7; y += 0.25) hr(s, M, y, W - 2 * M, RULE_SOFT, 0.5);   // 괘선 종이
   if (!(opt && opt.bare)) {
     s.addText(String(pageNo), { x: W - M - 0.5, y: H - 0.34, w: 0.5, h: 0.2, fontFace: FM, fontSize: 8, color: MUTED, align: "right", margin: 0, isTextBox: true });
-    if (sec) s.addText(sec + "  " + SEC[sec], { x: M, y: H - 0.34, w: 5, h: 0.2, fontFace: FM, fontSize: 8, color: MUTED, margin: 0, isTextBox: true });
+    if (sec) s.addText(secLabel(sec) + "  " + SEC[sec], { x: M, y: H - 0.34, w: 5, h: 0.2, fontFace: FM, fontSize: 8, color: MUTED, margin: 0, isTextBox: true });
   }
-  if (sec) tabs(s, sec);
+  if (sec) {
+    if (!ACTIVE.some((it) => it[0] === sec)) throw new Error("TALK_KEEP 의 섹션 코드가 틀렸다: " + sec + " 장이 만들어지는데 ACTIVE 에 없다");
+    usedSecs.add(sec); tabs(s, sec);
+  }
   return s;
 }
 /* 바인더 색인 탭 — SECTIONS 를 그대로 읽는다. 활성 탭만 빨간 펜 */
 function tabs(s, sec) {
-  SECTIONS.forEach((it, i) => {
+  ACTIVE.forEach((it, i) => {
     const y = 0.7 + i * 0.52, on = it[0] === sec;
     s.addShape(p.ShapeType.rect, { x: 0.08, y, w: 0.2, h: 0.46, fill: { color: on ? PEN : TAB_OFF }, line: { type: "none" } });
-    s.addText(it[0], { x: 0.08, y, w: 0.2, h: 0.46, fontFace: FM, fontSize: 7, color: on ? WHITE : MUTED, align: "center", valign: "middle", margin: 0, isTextBox: true });
+    s.addText(secLabel(it[0]), { x: 0.08, y, w: 0.2, h: 0.46, fontFace: FM, fontSize: 7, color: on ? WHITE : MUTED, align: "center", valign: "middle", margin: 0, isTextBox: true });
   });
 }
 /* 말풍선 배지 3종 — 색이 아니라 모양으로 가른다 */
@@ -102,10 +119,9 @@ function titleBar(s, title, sub) {
   s.addText(title, { x: M, y: 0.32, w: W - 2 * M, h: 0.5, fontFace: FX, fontSize: 25, color: INK, charSpacing: TR, valign: "middle", margin: 0, isTextBox: true });
   if (sub) s.addText(sub, { x: M, y: 0.88, w: W - 2 * M, h: 0.26, fontFace: FL, fontSize: 12, color: INK2, valign: "middle", margin: 0, isTextBox: true });
 }
-function foot(s, t, hand) {
+function foot(s, t) {
   hr(s, M, H - 0.62, W - 2 * M, LINE, 0.5);
-  if (hand) s.addText(t, { x: M, y: H - 0.62, w: W - 2 * M, h: 0.3, fontFace: HAND, fontSize: 15, color: INK2, valign: "middle", margin: 0, isTextBox: true });
-  else s.addText(t, { x: M, y: H - 0.58, w: W - 2 * M, h: 0.22, fontFace: F, fontSize: 9, color: MUTED, valign: "middle", margin: 0, isTextBox: true });
+  s.addText(t, { x: M, y: H - 0.58, w: W - 2 * M, h: 0.22, fontFace: F, fontSize: 9, color: MUTED, valign: "middle", margin: 0, isTextBox: true });
 }
 function pngSize(file) { const b = fs.readFileSync(file); return { w: b.readUInt32BE(16), h: b.readUInt32BE(20) }; }
 function ring(s, x, y, size) {   // "고리" 마크 — 겹친 원 두 개
@@ -119,6 +135,7 @@ const rowBorder = (color, pt) => [B_NONE, B_NONE, { type: "solid", color: color 
 /* 전폭형: 표 */
 function tableSlide(sec, title, sub, header, rows, colW, opt) {
   opt = opt || {};
+  if (!want(title)) return null;
   const s = slide(sec); titleBar(s, title, sub);
   const fsz = opt.fontSize || 10.5;
   const body = [header.map((t) => ({ text: t, options: { color: INK, fontFace: FM, fontSize: opt.headSize || 9.5, align: "left", border: rowBorder(INK, 1) } }))];
@@ -144,6 +161,7 @@ function railTitle(s, title, sub) {
 }
 function pointsSlide(sec, title, sub, items, opt) {
   opt = opt || {};
+  if (!want(title)) return null;
   const s = slide(sec); railTitle(s, title, sub);
   const x0 = M + RAIL + RGAP, cw = W - M - x0;
   const top = 0.4, bottom = H - (opt.foot ? 0.78 : 0.5);
@@ -161,6 +179,7 @@ function pointsSlide(sec, title, sub, items, opt) {
 }
 
 function bigImage(sec, title, sub, file, footTxt, notes) {
+  if (!want(title)) return null;
   const s = slide(sec); titleBar(s, title, sub);
   const { w: IW, h: IH } = pngSize(file);
   const ay = sub ? 1.26 : 1.08, ah = H - ay - (footTxt ? 0.74 : 0.46), aw = W - 2 * M;
@@ -172,6 +191,7 @@ function bigImage(sec, title, sub, file, footTxt, notes) {
 }
 
 function rowImages(sec, title, sub, items, footTxt, notes) {
+  if (!want(title)) return null;
   const s = slide(sec); titleBar(s, title, sub);
   const n = items.length, gap = 0.24;
   const ay = sub ? 1.26 : 1.1, cap = 0.62, ah = H - ay - (footTxt ? 0.74 : 0.46) - cap;
@@ -193,6 +213,7 @@ function rowImages(sec, title, sub, items, footTxt, notes) {
 /* ---------- ★ 화면 캡처 + API 말풍선 ---------- */
 function annotated(sec, title, sub, imgId, callouts, opt) {
   opt = opt || {};
+  if (!want(title)) return null;
   const s = slide(sec); titleBar(s, title, sub);
   const file = A(imgId + ".png"), an = ANCHORS[imgId];
   if (!an) throw new Error("anchors.json 에 " + imgId + " 가 없다 — tools/shots 로 다시 찍을 것");
@@ -223,23 +244,22 @@ function annotated(sec, title, sub, imgId, callouts, opt) {
     if (c.note) body.push({ text: "\n" + c.note, options: { fontFace: F, fontSize: 8.5, color: MUTED } });
     s.addText(body, { x: cx + 0.32, y: cy + 0.04, w: colW - 0.34, h: chh - 0.08, valign: "middle", margin: 0, isTextBox: true, lineSpacingMultiple: 1.1 });
   });
-  if (opt.foot) foot(s, opt.foot, opt.hand);
+  if (opt.foot) foot(s, opt.foot);
   if (opt.notes) s.addNotes(opt.notes);
   return s;
 }
 
 /* ============================================================ 표지 */
 {
-  const s = slide(null, { bare: true });
-  ring(s, M, 1.55, 0.7);
-  s.addText("너와 나의 인계고리", { x: M, y: 2.5, w: W - 2 * M, h: 1.0, fontFace: FX, fontSize: 46, color: INK, charSpacing: -1.6, margin: 0, isTextBox: true });
-  s.addText("간호사 교대근무 인계·배정 웹서비스", { x: M, y: 3.55, w: W - 2 * M, h: 0.3, fontFace: FL, fontSize: 14, color: INK2, margin: 0, isTextBox: true });
+  const s = slide(null, { bare: true });   // 사용자가 PowerPoint 로 만든 표지를 그대로 옮겼다(커밋 8d105e4 · R171): 고리 마크 없음, 제목·부제 손글씨
+  s.addText("너와 나의 인계고리", { x: M, y: 2.8125, w: W - 2 * M, h: 1.0, fontFace: HAND, fontSize: 46, color: INK, charSpacing: -1.6, valign: "middle", margin: 0, isTextBox: true });
+  s.addText("간호사 교대근무 인계·배정 웹서비스", { x: M, y: 3.864, w: W - 2 * M, h: 0.3, fontFace: HAND, fontSize: 18, color: INK2, valign: "middle", margin: 0, isTextBox: true });
   s.addText("SKALA 4기 웹서비스 미니프로젝트  판교캠퍼스 10반 P345 황재원   2026. 9. 17.", { x: M, y: H - 0.72, w: W - 2 * M, h: 0.26, fontFace: FM, fontSize: 9.5, color: MUTED, margin: 0, isTextBox: true });
   s.addNotes("첫 마디: 근무표는 누가 나오는지까지만 말합니다. 그 다음 고리가 비어 있습니다.");
 }
 
 /* 30라운드 — 도메인 0 인 사람이 3장 안에 시스템을 읽게 하는 앞 2장 */
-{
+if (want("교대할 때 무슨 일이 일어나나")) {
   const s = slide(null); titleBar(s, "교대할 때 무슨 일이 일어나나", "간호사는 하루 세 번 교대한다. 나가는 사람이 들어오는 사람에게 환자 상태를 넘긴다. 이걸 \"인계\"라고 한다");
   const y = 1.55, bh = 1.0, bw = 2.3, aw = W - 2 * M - 2 * bw - 0.5;
   const bx = (x, t, d) => {
@@ -248,7 +268,7 @@ function annotated(sec, title, sub, imgId, callouts, opt) {
   };
   bx(M, "밤 근무 간호사", "환자를 밤새 봤다");
   s.addShape(p.ShapeType.rightArrow, { x: M + bw + 0.25, y: y + bh / 2 - 0.16, w: aw, h: 0.32, fill: { color: PEN }, line: { type: "none" } });
-  s.addText("인계", { x: M + bw + 0.25, y: y - 0.12, w: aw, h: 0.4, fontFace: HAND, fontSize: 20, color: PEN, align: "center", margin: 0, isTextBox: true });
+  s.addText("인계", { x: M + bw + 0.25, y: y - 0.04, w: aw, h: 0.3, fontFace: FSB, fontSize: 13, color: PEN, align: "center", margin: 0, isTextBox: true });
   s.addText("환자 상태와 주의사항을 말로, 글로 넘긴다", { x: M + bw + 0.25, y: y + bh / 2 + 0.2, w: aw, h: 0.3, fontFace: F, fontSize: 10, color: INK2, align: "center", margin: 0, isTextBox: true });
   bx(W - M - bw, "아침 근무 간호사", "이제부터 이 환자를 본다");
   const rows = [["1", "넘겼다는 기록은 남는다. 받았다는 기록은 없다.", "나중에 \"들었다 / 못 들었다\"가 갈려도 확인할 데가 없다"],
@@ -261,7 +281,7 @@ function annotated(sec, title, sub, imgId, callouts, opt) {
   foot(s, "한 팀의 책임 간호사를 \"차지\"라고 부른다. 인계는 차지가 쓰고 다음 근무의 차지가 받는다. 이 발표에 필요한 말은 이게 전부다 [C]");
   s.addNotes("도메인 모르는 사람 기준 첫 장. 교대·인계·차지 세 단어만 소개한다.");
 }
-{
+if (want("그래서 이 서비스는 세 가지를 한다")) {
   const s = slide(null); titleBar(s, "그래서 이 서비스는 세 가지를 한다", null);
   const steps = [["1", "정한다", "그날 누가 어느 환자의\n인계를 맡는지", "수간호사"], ["2", "넘긴다", "병동이 정한 필수 항목이\n비면 넘길 수 없다", "차지"], ["3", "확인한다", "받은 사람이 핵심을 자기 말로\n요약해야 '확인'이 된다", "다음 근무 차지"]];
   const gap = 0.3, y = 1.2, h = 2.0, w = (W - 2 * M - gap * 2) / 3;
@@ -282,7 +302,7 @@ function annotated(sec, title, sub, imgId, callouts, opt) {
 }
 
 /* ============================================================ 01 */
-{
+if (want("무엇을 만들었나")) {
   const s = slide("01"); titleBar(s, "무엇을 만들었나", null);
   const boxes = [
     { t: "누가", d: "교대로 일하는 병동의\n간호사와 수간호사" },
@@ -308,7 +328,7 @@ function annotated(sec, title, sub, imgId, callouts, opt) {
 }
 
 /* 목차 — SECTIONS 를 그대로 읽는다 */
-{
+if (want("목차")) {
   const s = slide(null); titleBar(s, "목차", null);
   SECTIONS.forEach((it, i) => {
     const col = i < 4 ? 0 : 1, row = i % 4;
@@ -320,7 +340,7 @@ function annotated(sec, title, sub, imgId, callouts, opt) {
 }
 
 /* 용어 */
-{
+if (want("알아야 할 단어")) {
   const s = slide("01"); titleBar(s, "알아야 할 단어", null);
   const words = [
     { w: "듀티", d: "하루를 셋으로 나눈 근무. 데이(D), 이브닝(E), 나이트(N)." },
@@ -437,7 +457,7 @@ bigImage("04", "간호사 쪽", "내 근무 → 인계 쓰기 → 인계 받고 
   "인계 전달만 서로 다른 사람 사이에서 일어난다. 그래서 '고리'.");
 
 /* ============================================================ 05 화면 */
-{
+if (want("화면들을 읽는 법")) {
   const s = slide("05"); titleBar(s, "화면들을 읽는 법", null);
   const rows = [["api", "빨간 원", "API 가 호출되는 곳. 어떤 주소로 무엇을 하는지"],
                 ["nav", "검은 원", "화면이 이동하는 곳. 이 버튼을 누르면 어디로 가는지"],
@@ -466,7 +486,7 @@ annotated("05", "인계 쓰기", "필수 항목이 비면 넘길 수 없다", "9
   { n: 2, kind: "exc", path: "422 보낸 내용이 모자람", text: "필수 항목이 비어 있으면 넘길 수 없다", note: "어떤 항목이 비었는지 이름까지 알려준다" },
   { n: 3, kind: "api", path: "POST /handovers/{id}/send", text: "넘기면 '작성 중'에서 '전달됨'으로", note: "받을 사람은 서버가 고른다. 같은 환자의 다음 근무 담당" },
   { n: 4, kind: "api", path: "PATCH /handovers/{id}/items", text: "입력한 내용은 임시저장", note: "한 번 넘긴 뒤에는 못 고친다(409)" },
-], { foot: "받을 사람을 요청에서 안 받는 이유: 받으면 아무 근무로나 인계를 보낼 수 있게 된다", hand: true,
+], { foot: "받을 사람을 요청에서 안 받는 이유: 받으면 아무 근무로나 인계를 보낼 수 있게 된다",
      notes: "필수 항목 검사는 칸이 비었는지만 본다. 내용의 성의는 안 본다. 한계 슬라이드에서 말한다." });
 
 annotated("05", "인계 받기", "요약을 써야 확인이 된다", "10_handover_receive_nurse", [
@@ -474,7 +494,7 @@ annotated("05", "인계 받기", "요약을 써야 확인이 된다", "10_handov
   { n: 2, kind: "api", path: "PATCH /handovers/{id}/receipt", text: "받은 사람이 자기 말로 쓴 요약이 여기 저장", note: "이 칸이 이 서비스의 핵심" },
   { n: 3, kind: "api", path: "POST /…/receipt/confirmation", text: "확인 처리. 이때 '확인됨'이 된다", note: "보낸 사람 화면에 이 요약이 되돌아간다" },
   { n: 4, kind: "exc", path: "422 · 403", text: "요약이 없으면 확인되지 않는다(422)", note: "그 환자를 맡은 사람이 아니면 403" },
-], { foot: "화면에 들어오는 순간 '열어봤다'는 시각이 따로 남는다. 조회와 분리했다. 수간호사가 봐도 수신 기록이 되면 안 되니까", hand: true,
+], { foot: "화면에 들어오는 순간 '열어봤다'는 시각이 따로 남는다. 조회와 분리했다. 수간호사가 봐도 수신 기록이 되면 안 되니까",
      notes: "단순 '읽음' 체크와 receiver_summary 를 가르는 지점. 첫 번째 불편의 해결." });
 
 annotated("05", "결원 재배정", "사람이 판단하는 자리와 시스템이 막는 자리를 나눴다", "6_reassign_manager", [
@@ -517,7 +537,7 @@ rowImages("05", "나머지 화면 2", null,
   "빈 화면을 설계했다는 것 자체가 권한을 세 갈래로 나눈 이유다. 인계 담당이 없어도 근무는 보여야 한다");
 
 /* ============================================================ 06 데이터 모델 */
-{
+if (want("핵심 데이터")) {
   const s = slide("06"); titleBar(s, "핵심 데이터", "인계 한 건이 만들어져 확인되기까지 거치는 표");
   const { w: IW, h: IH } = pngSize(A("erd_core.png"));
   const ay = 1.26, ah = H - ay - 0.5;
@@ -581,7 +601,7 @@ bigImage("07", "API 명세", "24개 전부. 주소 21개, 명세 오류 0",
   "공통 응답 봉투·오류 형식·스키마 24개를 components 에 두고 $ref 로 164회 재사용했다. 로그인·인증은 병원 시스템 몫이라 명세에 없다",
   "화면 11개에서 일어나는 동작 25가지를 먼저 세고, 겹치는 것을 빼 24개가 됐다.");
 
-{
+if (want("API 24개")) {
   const s = slide("07"); titleBar(s, "API 24개", "화면에서 보이던 주소가 그대로 명세의 주소");
   const left = [
     ["3", "GET  /wards/{id}/shift-assignments", "근무 목록"],
@@ -629,7 +649,7 @@ bigImage("07", "API 명세", "24개 전부. 주소 21개, 명세 오류 0",
   s.addNotes("배점 20점 파트. '화면에서 세어서 만들었다'는 순서를 꼭 말한다.");
 }
 
-{
+if (want("일부러 요청에서 안 받는 값")) {
   const s = slide("07");
   titleBar(s, "일부러 요청에서 안 받는 값", "Path·Query·Body 중, 화면이 정하게 두면 깨지는 것들");
   const rows = [
@@ -686,7 +706,7 @@ pointsSlide("08", "못 한 것", null, [
 ], { notes: "한계를 먼저 말하면 질문이 줄어든다." });
 
 /* 32라운드 — 2일차 사용자 세션. 원문 그대로(R170). 이름은 적지 않는다(규칙 1) */
-{
+if (want("써 본 사람의 말")) {
   const s = slide("08"); titleBar(s, "써 본 사람의 말", "말한 그대로 옮겼다");
   const mx = M, my = 1.32, mw = 5.2, mh = 3.0;
   s.addShape(p.ShapeType.rect, { x: mx, y: my, w: mw, h: mh, fill: { color: MEMO }, line: { type: "none" }, rotate: -1.5 });
@@ -711,9 +731,8 @@ pointsSlide("08", "못 한 것", null, [
   s.addNotes("과제 형식은 안 했고 자유롭게 써 보게 했다. 정량 기록은 없다. 설계와 맞은 규칙 셋(작성자만 수정 403 · 넘긴 뒤 불변 409 · DELETE 없음)은 말로 잇는다. 열람 범위(현장은 병동 전체)는 우리가 더 좁아 보완으로 뒀다.");
 }
 
-{
-  const s = slide("08"); titleBar(s, "요청 목록, 정리한 그대로", null);
-  s.addText("시연 끝나고 옆에서 받아 적은 것", { x: M, y: 0.84, w: W - 2 * M, h: 0.34, fontFace: HAND, fontSize: 17, color: INK2, valign: "middle", margin: 0, isTextBox: true });
+if (want("요청 목록, 정리한 그대로")) {
+  const s = slide("08"); titleBar(s, "요청 목록, 정리한 그대로", "시연 끝나고 옆에서 받아 적은 것");
   const cols = [
     { t: "수간호사", w: 1.6, items: ["심사과 -> 처방 누락건 잡아내는 시스템", "근무표 자동 생성"] },
     { t: "간호사", w: 3.9, items: [
@@ -760,7 +779,7 @@ tableSlide("08", "그 다음에 할 수 있는 것", "요청 14건을 우리 데
   { foot: "바로 붙는 건 2건, 나머지는 연동이 먼저. 작성자만 수정·넘긴 뒤 불변·지우지 않음은 우리 403·409·DELETE 없음과 같았다",
     notes: "요청을 기능 목록이 아니라 '우리 데이터로 되는가'로 나눈 것이 정합성의 연장이다. 하나도 구현하지 않았다." });
 
-{
+if (want("어떻게 확인했나")) {
   const s = slide("08"); titleBar(s, "어떻게 확인했나", null);
   const cards = [
     { n: "1명", t: "인터뷰 1회 + 대면 세션 1회", d: "국내 종합병원 병동 한 곳\n데모를 직접 써 보게 했다 [C]" },
@@ -788,7 +807,10 @@ tableSlide("08", "그 다음에 할 수 있는 것", "요청 14건을 우리 데
   const s = slide(null, { bare: true });
   ring(s, M, 1.9, 0.7);
   s.addText("감사합니다", { x: M, y: 2.8, w: W - 2 * M, h: 0.8, fontFace: FX, fontSize: 34, color: INK, charSpacing: -1, margin: 0, isTextBox: true });
-  s.addText("근무표가 끝나는 지점에서 시작한다.", { x: M, y: 3.7, w: W - 2 * M, h: 0.5, fontFace: HAND, fontSize: 22, color: INK2, margin: 0, isTextBox: true });
+  s.addText("근무표가 끝나는 지점에서 시작한다.", { x: M, y: 3.7, w: W - 2 * M, h: 0.4, fontFace: FL, fontSize: 14, color: INK2, margin: 0, isTextBox: true });
 }
 
-p.writeFile({ fileName: OUT }).then(() => console.log("done →", OUT, "·", pageNo, "장"));
+const missing = ACTIVE.filter((it) => !usedSecs.has(it[0])).map((it) => it[0]);
+if (missing.length) throw new Error("ACTIVE 에 있는데 장이 하나도 없는 섹션: " + missing.join(", "));
+if (TALK) { const n = 2 + TALK_KEEP.length; if (pageNo !== n) throw new Error("발표용 장 수가 " + pageNo + " (기대 " + n + ") — TALK_KEEP 제목이 슬라이드 제목과 다르다"); }
+p.writeFile({ fileName: OUT }).then(() => console.log("done →", OUT, "·", pageNo, "장 · 섹션 " + ACTIVE.map((it) => secLabel(it[0])).join(",")));
