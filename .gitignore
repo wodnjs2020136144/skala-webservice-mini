@@ -5,3 +5,8 @@ node_modules/
 
 # Office 잠금 파일
 **/~$*
+
+# 공개 전환 대비 제외 — 강의 교안(저작권) · 제출 번들 폴더(deliverables/ 루트 파일의 중복) · 로그
+docs/AI캠퍼스_*.pdf
+deliverables/10반_황재원_너와나의인계고리/
+dbml-error.log
